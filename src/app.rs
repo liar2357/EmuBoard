@@ -1,34 +1,29 @@
+use gtk::glib;
 use gtk::prelude::*;
-use gtk::{Application, ApplicationWindow, Button};
 
-pub fn run() {
-    // Application を作る
-    let app = Application::builder()
-        .application_id("com.example.ui_test")
+pub fn run() -> glib::ExitCode {
+    // GTK4 アプリケーションを作成
+    let app = gtk::Application::builder()
+        .application_id("org.example.GtkUi")
         .build();
 
-    // activate シグナルに UI を作るクロージャを登録
     app.connect_activate(|app| {
-        // ウィンドウを作る
-        let window = ApplicationWindow::builder()
-            .application(app)
-            .default_width(320)
-            .default_height(200)
-            .title("GTK4 Rust UI Test")
-            .build();
+        // UI をファイルから読み込む
+        let builder = gtk::Builder::from_file("resources/window.ui");
 
-        // シンプルなボタン
-        let button = Button::with_label("Press me");
-        button.connect_clicked(move |_| {
-            println!("Button clicked");
-        });
+        // ウィンドウを取得
+        let window: gtk::ApplicationWindow = builder
+            .object::<gtk::ApplicationWindow>("main_window")
+            .expect("main_window not found in UI")
+            .downcast()
+            .expect("Failed to downcast main_window");
 
-        // ウィンドウにセット
-        window.set_child(Some(&button));
+        // Application をセット
+        window.set_application(Some(app));
 
         // ウィンドウを表示
         window.present();
     });
 
-    app.run();
+    app.run()
 }
