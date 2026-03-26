@@ -1,5 +1,6 @@
 mod app;
+mod ui;
 
-fn main() {
-    crate::app::run();
+fn main() -> gtk::glib::ExitCode {
+    crate::app::run()
 }

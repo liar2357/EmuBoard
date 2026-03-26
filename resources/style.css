@@ -1,0 +1,22 @@
+.key {
+  min-width: 40px;
+  min-height: 40px;
+
+  border: 1px solid #666;
+  border-radius: 6px;
+
+  background-color: #222;
+  color: #000000;
+}
+
+.key:hover {
+  background-color: #333;
+}
+
+.key:active {
+  background-color: #555;
+}
+
+.keyboard {
+  border: solid 1px #000000;
+}

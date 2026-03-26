@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <object class="GtkButton" id="key_button">
+    <property name="hexpand">false</property>
+    <property name="vexpand">false</property>
+    <property name="css-classes">key</property>
+    <child>
+      <object class="GtkOverlay">
+        <!-- ベース -->
+        <child>
+          <object class="GtkBox"/>
+        </child>
+        <!-- 通常（左下） -->
+        <child type="overlay">
+          <object class="GtkLabel" id="label_normal">
+            <property name="halign">start</property>
+            <property name="valign">end</property>
+            <property name="margin-start">0</property>
+            <property name="margin-bottom">0</property>
+          </object>
+        </child>
+        <!-- Shift（右上） -->
+        <child type="overlay">
+          <object class="GtkLabel" id="label_shift">
+            <property name="halign">end</property>
+            <property name="valign">start</property>
+            <property name="margin-end">0</property>
+            <property name="margin-top">0</property>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
