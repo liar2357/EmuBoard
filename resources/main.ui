@@ -5,9 +5,6 @@
     <property name="default_height">400</property>
     <child>
       <object class="GtkGrid" id="grid">
-        <property name="css-classes">keybord</property>
-        <property name="row-spacing">6</property>
-        <property name="column-spacing">6</property>
         <property name="hexpand">false</property>
         <property name="vexpand">false</property>
         <property name="halign">center</property>

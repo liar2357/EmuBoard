@@ -6,6 +6,30 @@ use gtk::prelude::*;
 use gtk::style_context_add_provider_for_display;
 use gtk::{Application, ApplicationWindow, Grid};
 
+const SCALING_RATIO: f32 = 8.0;
+const SCALING_UNIT: i32 = 5;
+const ROW_SPACE: u32 = 5;
+const COL_SPACE: u32 = 5;
+
+enum CLTag {
+    Width,
+    Height,
+}
+
+fn key_scaling(base: f32) -> i32 {
+    dbg!((base * SCALING_RATIO).floor() as i32)
+}
+
+fn calc_length(mode: CLTag, base: f32) -> i32 {
+    key_scaling(base) * SCALING_UNIT
+        + (base - 1.0).floor() as i32
+            * if let CLTag::Height = mode {
+                ROW_SPACE
+            } else {
+                COL_SPACE
+            } as i32
+}
+
 fn load_css() {
     let provider = CssProvider::new();
 
@@ -47,17 +71,50 @@ pub fn build_ui(app: &Application) {
     let window: ApplicationWindow = builder.object::<ApplicationWindow>("main_window").unwrap();
 
     let grid: Grid = builder.object::<Grid>("grid").unwrap();
+    grid.set_row_spacing(ROW_SPACE);
+    grid.set_column_spacing(COL_SPACE);
 
     window.set_application(Some(app));
 
-    let keyboard: Keyboard = load_keyboard("test");
+    let keyboard: Keyboard = load_keyboard("JIS-QWERTY");
 
-    for (r_num, line) in keyboard.rows.iter().enumerate() {
-        for (c_num, key) in line.keys.iter().enumerate() {
+    let mut c_num: i32;
+    let mut r_num: i32 = 0;
+
+    for line in keyboard.rows.iter() {
+        c_num = 0;
+        let mut rn_temp = i32::MAX;
+
+        for key in line.keys.iter() {
+            dbg!(&key);
+            dbg!(&c_num);
+            dbg!(&r_num);
+
+            let fixed_w = key_scaling(key.width);
+            let fixed_h = key_scaling(key.height);
             let btn = create_key(key);
 
-            grid.attach(&btn, c_num as i32, r_num as i32, 1, 1);
+            btn.set_size_request(
+                dbg!(calc_length(CLTag::Width, key.width)),
+                dbg!(calc_length(CLTag::Height, key.height)),
+            );
+
+            btn.set_hexpand(false);
+            btn.set_vexpand(false);
+
+            btn.set_halign(gtk::Align::Center);
+            btn.set_valign(gtk::Align::Center);
+
+            grid.attach(&btn, c_num, r_num, fixed_w, fixed_h);
+
+            c_num += fixed_w;
+            if rn_temp > fixed_h {
+                rn_temp = fixed_h;
+            }
         }
+        dbg!("---");
+
+        r_num += rn_temp;
     }
 
     window.present();

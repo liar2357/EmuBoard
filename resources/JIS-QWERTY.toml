@@ -1,5 +1,27 @@
 [[rows]]
 keys = [
+  { normal = "Esc" },
+  { normal = "F1", width = 0.875 },
+  { normal = "F2", width = 0.875 },
+  { normal = "F3", width = 0.875 },
+  { normal = "F4", width = 0.875 },
+  { normal = "F5", width = 0.875 },
+  { normal = "F6", width = 0.875 },
+  { normal = "F7", width = 0.875 },
+  { normal = "F8", width = 0.875 },
+  { normal = "F9", width = 0.875 },
+  { normal = "F10", width = 0.875 },
+  { normal = "F11", width = 0.875 },
+  { normal = "F12", width = 0.875 },
+  { normal = "Pause", width = 0.875 },
+  { normal = "Prt\nSc", width = 0.875 },
+  { normal = "Ins", width = 0.875 },
+  { normal = "Del", width = 0.875 },
+]
+
+[[rows]]
+keys = [
+  { normal = "全/半" },
   { normal = "1", shift = "!" },
   { normal = "2", shift = "\"" },
   { normal = "3", shift = "#" },
@@ -12,11 +34,14 @@ keys = [
   { normal = "0", shift = "" },
   { normal = "-", shift = "=" },
   { normal = "^", shift = "~" },
-  { normal = "\\", shift = "|" }
+  { normal = "\\", shift = "|" },
+  { normal = "BS" },
 ]
+
 
 [[rows]]
 keys = [
+  { normal = "TAB", width = 1.5 },
   { normal = "q", shift = "Q" },
   { normal = "w", shift = "W" },
   { normal = "e", shift = "E" },
@@ -29,11 +54,12 @@ keys = [
   { normal = "p", shift = "P" },
   { normal = "@", shift = "`" },
   { normal = "[", shift = "{" },
-  { normal = "", shift = "" }
+  { normal = "Enter", height = 2, width = 1.5 },
 ]
 
 [[rows]]
 keys = [
+  { normal = "CAPS", width = 1.5 },
   { normal = "a", shift = "A" },
   { normal = "s", shift = "S" },
   { normal = "d", shift = "D" },
@@ -46,11 +72,11 @@ keys = [
   { normal = ";", shift = "+" },
   { normal = ":", shift = "*" },
   { normal = "]", shift = "}" },
-  { normal = "", shift = "" }
 ]
 
 [[rows]]
 keys = [
+  { normal = "Shift", width = 2 },
   { normal = "z", shift = "Z" },
   { normal = "x", shift = "X" },
   { normal = "c", shift = "C" },
@@ -62,6 +88,23 @@ keys = [
   { normal = ".", shift = ">" },
   { normal = "/", shift = "?" },
   { normal = "\\", shift = "_" },
-  { normal = "", shift = "" },
-  { normal = "", shift = "" }
+  { normal = "↑" },
+  { normal = "Shift" },
+]
+
+[[rows]]
+keys = [
+  { normal = "Ctrl", width = 1 },
+  { normal = "Super" },
+  { normal = "Alt" },
+  { normal = "無変換" },
+  { normal = "Space", width = 3 },
+  { normal = "変換" },
+  { normal = "かな\nカナ" },
+  { normal = "Alt" },
+  { normal = "App" },
+  { normal = "Ctrl", width = 1 },
+  { normal = "←" },
+  { normal = "↓" },
+  { normal = "→" },
 ]
