@@ -1,10 +1,10 @@
 use crate::ui::load::load_keyboard;
 use crate::ui::structs::{KeyDef, Keyboard};
-use gtk::CssProvider;
-use gtk::gdk;
-use gtk::prelude::*;
-use gtk::style_context_add_provider_for_display;
-use gtk::{Application, ApplicationWindow, Grid};
+use gtk::{
+    Application, ApplicationWindow, CssProvider, Grid, gdk, prelude::*,
+    style_context_add_provider_for_display,
+};
+use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
 
 const SCALING_RATIO: f32 = 8.0;
 const SCALING_UNIT: i32 = 5;
@@ -69,6 +69,15 @@ pub fn build_ui(app: &Application) {
     let builder = gtk::Builder::from_file("resources/main.ui");
 
     let window: ApplicationWindow = builder.object::<ApplicationWindow>("main_window").unwrap();
+
+    window.init_layer_shell();
+    window.set_layer(Layer::Overlay);
+    window.set_anchor(Edge::Bottom, true);
+    window.set_anchor(Edge::Left, true);
+    window.set_anchor(Edge::Right, true);
+    window.set_keyboard_mode(KeyboardMode::None);
+    window.set_exclusive_zone(0);
+    window.set_namespace(Some("osk"));
 
     let grid: Grid = builder.object::<Grid>("grid").unwrap();
     grid.set_row_spacing(ROW_SPACE);
