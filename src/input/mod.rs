@@ -1,2 +1,2 @@
-pub mod funcs;
+pub mod runner;
 pub mod structs;

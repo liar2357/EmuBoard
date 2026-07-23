@@ -1,22 +1,21 @@
 [[rows]]
 keys = [
   { type = "special", label = "Esc", logical = "Escape" },
-  { type = "special", label = "F1", width = 0.875, logical = "F1" },
-  { type = "special", label = "F2", width = 0.875, logical = "F2" },
-  { type = "special", label = "F3", width = 0.875, logical = "F3" },
-  { type = "special", label = "F4", width = 0.875, logical = "F4" },
-  { type = "special", label = "F5", width = 0.875, logical = "F5" },
-  { type = "special", label = "F6", width = 0.875, logical = "F6" },
-  { type = "special", label = "F7", width = 0.875, logical = "F7" },
-  { type = "special", label = "F8", width = 0.875, logical = "F8" },
-  { type = "special", label = "F9", width = 0.875, logical = "F9" },
-  { type = "special", label = "F10", width = 0.875, logical = "F10" },
-  { type = "special", label = "F11", width = 0.875, logical = "F11" },
-  { type = "special", label = "F12", width = 0.875, logical = "F12" },
-  { type = "special", label = "Pause", width = 0.875, logical = "Pause" },
-  { type = "special", label = "Prt\nSc", width = 0.875, logical = "PrintScreen" },
-  { type = "special", label = "Ins", width = 0.875, logical = "Insert" },
-  { type = "special", label = "Del", width = 0.875, logical = "Delete" },
+  { type = "special", label = "F1", logical = "F1" },
+  { type = "special", label = "F2", logical = "F2" },
+  { type = "special", label = "F3", logical = "F3" },
+  { type = "special", label = "F4", logical = "F4" },
+  { type = "special", label = "F5", logical = "F5" },
+  { type = "special", label = "F6", logical = "F6" },
+  { type = "special", label = "F7", logical = "F7" },
+  { type = "special", label = "F8", logical = "F8" },
+  { type = "special", label = "F9", logical = "F9" },
+  { type = "special", label = "F10", logical = "F10" },
+  { type = "special", label = "F11", logical = "F11" },
+  { type = "special", label = "F12", logical = "F12" },
+  { type = "special", label = "Pause", logical = "Pause" },
+  { type = "special", label = "Prt Sc", logical = "PrintScreen" },
+  { type = "special", label = "Ins", logical = "Insert" },
 ]
 
 [[rows]]
@@ -35,13 +34,16 @@ keys = [
   { type = "char", label = "-", shifted = "=", keycode = "MINUS" },
   { type = "char", label = "^", shifted = "~", keycode = "EQUAL" },
   { type = "char", label = "￥", shifted = "|", keycode = "YEN" },
-  { type = "special", label = "BS", logical = "Backspace" },
+  { type = "multi", key = [
+    { type = "special", label = "BS", logical = "Backspace" },
+    { type = "special", label = "Del", logical = "Delete" },
+  ] },
 ]
 
 
 [[rows]]
 keys = [
-  { type = "special", label = "TAB", width = 1.5, logical = "Tab" },
+  { type = "special", label = "TAB", width = 2, logical = "Tab" },
   { type = "char", label = "q", shifted = "Q", keycode = "Q" },
   { type = "char", label = "w", shifted = "W", keycode = "W" },
   { type = "char", label = "e", shifted = "E", keycode = "E" },
@@ -54,12 +56,12 @@ keys = [
   { type = "char", label = "p", shifted = "P", keycode = "P" },
   { type = "char", label = "@", shifted = "`", keycode = "LEFTBRACE" },
   { type = "char", label = "[", shifted = "{", keycode = "RIGHTBRACE" },
-  { type = "special", label = "Enter", height = 2, width = 1.5, logical = "Enter" },
+  { type = "special", label = "Enter", height = 2, width = 2, logical = "Enter" },
 ]
 
 [[rows]]
 keys = [
-  { type = "special", label = "CAPS", width = 1.5, logical = "CapsLock" },
+  { type = "special", label = "CAPS", width = 2, logical = "CapsLock" },
   { type = "char", label = "a", shifted = "A", keycode = "A" },
   { type = "char", label = "s", shifted = "S", keycode = "S" },
   { type = "char", label = "d", shifted = "D", keycode = "D" },
@@ -88,23 +90,39 @@ keys = [
   { type = "char", label = ".", shifted = ">", keycode = "DOT" },
   { type = "char", label = "/", shifted = "?", keycode = "SLASH" },
   { type = "char", label = "\\", shifted = "_", keycode = "RO" },
-  { type = "special", label = "↑", logical = "ArrowUp" },
   { type = "special", label = "Shift", logical = "RShift" },
+  { type = "multi", key = [
+    { type = "special", label = "↑", logical = "ArrowUp" },
+    { type = "special", label = "pg up", logical = "PageUp" },
+  ] },
 ]
 
 [[rows]]
 keys = [
-  { type = "special", label = "Ctrl", width = 1, logical = "LCtrl" },
+  { type = "special", label = "Ctrl", logical = "LCtrl" },
   { type = "special", label = "Super", logical = "LSuper" },
   { type = "special", label = "Alt", logical = "LAlt" },
+  { type = "custom", label = "Fn", custom = "Fn" },
   { type = "special", label = "無変換", logical = "Muhenkan" },
   { type = "special", label = "Space", width = 3, logical = "Space" },
   { type = "special", label = "変換", logical = "Henkan" },
-  { type = "special", label = "かな\nカナ", logical = "Katakana" },
+  { type = "multi", key = [
+    { type = "special", label = "カナ", logical = "Katakana" },
+    { type = "special", label = "かな", logical = "Hiragana" },
+  ] },
   { type = "special", label = "Alt", logical = "RAlt" },
   { type = "special", label = "App", logical = "RSuper" },
-  { type = "special", label = "Ctrl", width = 1, logical = "RCtrl" },
-  { type = "special", label = "←", logical = "ArrowLeft" },
-  { type = "special", label = "↓", logical = "ArrowDown" },
-  { type = "special", label = "→", logical = "ArrowRight" },
+  { type = "special", label = "Ctrl", logical = "RCtrl" },
+  { type = "multi", key = [
+    { type = "special", label = "←", logical = "ArrowLeft" },
+    { type = "special", label = "home", logical = "Home" },
+  ] },
+  { type = "multi", key = [
+    { type = "special", label = "↓", logical = "ArrowDown" },
+    { type = "special", label = "pg dn", logical = "PageDown" },
+  ] },
+  { type = "multi", key = [
+    { type = "special", label = "→", logical = "ArrowRight" },
+    { type = "special", label = "end", logical = "End" },
+  ] },
 ]

@@ -1,5 +1,5 @@
 .key {
-  border: 1px solid #666;
+  border: 1px solid #00f;
   border-radius: 6px;
 
   background-color: #eee;
@@ -13,4 +13,8 @@
 
 .key:active {
   background-color: #555;
+}
+
+.key-label {
+  font-size: 14px;
 }

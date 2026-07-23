@@ -1,8 +1,15 @@
 use evdevil::event::Key;
 use serde::Deserialize;
+use std::{cmp::max, collections::HashSet};
+
+#[derive(Debug, Clone, Copy)]
+pub enum KeyWrap {
+    Default(Key),
+    Custom(CustomKey),
+}
 
 #[derive(Debug, Deserialize)]
-enum LogicalKey {
+pub enum LogicalKey {
     // 入力系
     Enter,
     Backspace,
@@ -60,14 +67,49 @@ enum LogicalKey {
     Muhenkan,
     Henkan,
     Katakana,
+    Hiragana,
 
     // 例外
+    Other,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy)]
+pub enum CustomKey {
+    Fn,
     Other,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct Keyboard {
     pub rows: Vec<KeyLine>,
+}
+impl Keyboard {
+    pub fn supperted_keys(&self) -> Vec<Key> {
+        let mut set: HashSet<Key> = HashSet::new();
+
+        for row in &self.rows {
+            for key in &row.keys {
+                set.extend(key.key_patterns());
+            }
+        }
+
+        set.into_iter().collect()
+    }
+
+    pub fn calc_key_unit_in_line(&self) -> i32 {
+        let mut unit_in_line = 0;
+        for line in self.rows.iter() {
+            unit_in_line = max(
+                unit_in_line,
+                line.keys.iter().map(|v| v.width()).sum::<i32>(),
+            );
+        }
+        unit_in_line
+    }
+
+    pub fn get_keydef_by_addr(&self, (r, c): (usize, usize)) -> &KeyDef {
+        &self.rows[r].keys[c]
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -85,10 +127,10 @@ pub enum KeyDef {
         keycode: String,
 
         #[serde(default = "default_width")]
-        width: f32,
+        width: i32,
 
         #[serde(default = "default_height")]
-        height: f32,
+        height: i32,
     },
 
     #[serde(rename = "special")]
@@ -97,17 +139,34 @@ pub enum KeyDef {
         logical: LogicalKey,
 
         #[serde(default = "default_width")]
-        width: f32,
+        width: i32,
 
         #[serde(default = "default_height")]
-        height: f32,
+        height: i32,
     },
+
+    #[serde(rename = "custom")]
+    Custom {
+        label: String,
+        custom: CustomKey,
+
+        #[serde(default = "default_width")]
+        width: i32,
+
+        #[serde(default = "default_height")]
+        height: i32,
+    },
+
+    #[serde(rename = "multi")]
+    Multi { key: Vec<KeyDef> },
 }
 impl KeyDef {
-    pub fn label(&self, shift: bool) -> &str {
+    pub fn label(&self, shift: bool, is_fn: bool) -> &str {
         match self {
             KeyDef::Char { label, shifted, .. } => {
-                if shift {
+                if is_fn {
+                    ""
+                } else if shift {
                     shifted.as_deref().unwrap_or(label)
                 } else {
                     label
@@ -115,32 +174,52 @@ impl KeyDef {
             }
 
             KeyDef::Special { label, .. } => {
-                if shift {
+                if is_fn || shift {
                     ""
                 } else {
                     label
                 }
             }
+
+            KeyDef::Custom { label, .. } => {
+                if is_fn || shift {
+                    ""
+                } else {
+                    label
+                }
+            }
+
+            KeyDef::Multi { key } => {
+                if !is_fn {
+                    key[0].label(shift, is_fn)
+                } else {
+                    key[1].label(shift, false)
+                }
+            }
         }
     }
 
-    pub fn width(&self) -> f32 {
+    pub fn width(&self) -> i32 {
         match self {
             KeyDef::Char { width, .. } => *width,
             KeyDef::Special { width, .. } => *width,
+            KeyDef::Custom { width, .. } => *width,
+            KeyDef::Multi { key } => key[0].width(),
         }
     }
 
-    pub fn height(&self) -> f32 {
+    pub fn height(&self) -> i32 {
         match self {
             KeyDef::Char { height, .. } => *height,
             KeyDef::Special { height, .. } => *height,
+            KeyDef::Custom { height, .. } => *height,
+            KeyDef::Multi { key } => key[0].height(),
         }
     }
 
-    pub fn key_code(&self) -> Key {
+    pub fn key_code(&self, is_fn: bool) -> KeyWrap {
         match self {
-            KeyDef::Char { keycode, .. } => match keycode.as_str() {
+            KeyDef::Char { keycode, .. } => KeyWrap::Default(match keycode.as_str() {
                 "1" => Key::KEY_1,
                 "2" => Key::KEY_2,
                 "3" => Key::KEY_3,
@@ -193,8 +272,8 @@ impl KeyDef {
                 "RO" => Key::KEY_RO,
 
                 _ => panic!(),
-            },
-            KeyDef::Special { logical, .. } => match logical {
+            }),
+            KeyDef::Special { logical, .. } => KeyWrap::Default(match logical {
                 LogicalKey::Enter => Key::KEY_ENTER,
                 LogicalKey::Backspace => Key::KEY_BACKSPACE,
                 LogicalKey::Tab => Key::KEY_TAB,
@@ -237,16 +316,96 @@ impl KeyDef {
                 LogicalKey::Muhenkan => Key::KEY_MUHENKAN,
                 LogicalKey::Henkan => Key::KEY_HENKAN,
                 LogicalKey::Katakana => Key::KEY_KATAKANA,
+                LogicalKey::Hiragana => Key::KEY_HIRAGANA,
                 _ => panic!(),
-            },
+            }),
+            KeyDef::Custom { custom, .. } => KeyWrap::Custom(*custom),
+            KeyDef::Multi { key } => {
+                if !is_fn {
+                    key[0].key_code(is_fn)
+                } else {
+                    key[1].key_code(is_fn)
+                }
+            }
         }
+    }
+
+    pub fn key_patterns(&self) -> HashSet<Key> {
+        let mut set = HashSet::new();
+
+        match self {
+            KeyDef::Char { .. } | KeyDef::Special { .. } => {
+                if let KeyWrap::Default(k) = self.key_code(false) {
+                    set.insert(k);
+                }
+            }
+
+            KeyDef::Multi { key } => {
+                for k in key {
+                    if let KeyWrap::Default(k) = k.key_code(false) {
+                        set.insert(k);
+                    }
+                }
+            }
+
+            _ => {}
+        }
+
+        set
     }
 }
 
-fn default_width() -> f32 {
-    1.0
+fn default_width() -> i32 {
+    1
 }
 
-fn default_height() -> f32 {
-    1.0
+fn default_height() -> i32 {
+    1
+}
+
+pub struct KeyLabel {
+    nomal: gtk::Label,
+    shift: gtk::Label,
+    func: gtk::Label,
+}
+impl KeyLabel {
+    pub fn set_text(&mut self, texts: (&str, &str, &str)) {
+        self.nomal.set_label(texts.0);
+        self.shift.set_label(texts.1);
+        self.func.set_label(texts.2);
+    }
+}
+
+pub struct KeyLabelTable {
+    table: Vec<Vec<KeyLabel>>,
+}
+impl KeyLabelTable {
+    pub fn new() -> Self {
+        Self { table: vec![] }
+    }
+
+    pub fn append(&mut self, addr: (usize, usize), obj: (gtk::Label, gtk::Label, gtk::Label)) {
+        let work = KeyLabel {
+            nomal: obj.0,
+            shift: obj.1,
+            func: obj.2,
+        };
+
+        if addr.1 == 0 {
+            self.table.push(vec![work]);
+        } else {
+            self.table[addr.0].push(work);
+        }
+    }
+
+    pub fn set_text(&mut self, addr: (usize, usize), texts: (&str, &str, &str)) {
+        self.table[addr.0][addr.1].set_text(texts);
+    }
+}
+
+pub enum UiEvent {
+    SetKeyText {
+        pos: (usize, usize),
+        texts: (String, String, String),
+    },
 }

@@ -15,8 +15,11 @@
           <object class="GtkLabel" id="label_normal">
             <property name="halign">start</property>
             <property name="valign">end</property>
-            <property name="margin-start">0</property>
-            <property name="margin-bottom">0</property>
+            <property name="margin-start">2</property>
+            <property name="margin-bottom">2</property>
+            <style>
+              <class name="key-label"/>
+            </style>
           </object>
         </child>
         <!-- Shift（右上） -->
@@ -24,8 +27,23 @@
           <object class="GtkLabel" id="label_shift">
             <property name="halign">end</property>
             <property name="valign">start</property>
-            <property name="margin-end">0</property>
-            <property name="margin-top">0</property>
+            <property name="margin-end">2</property>
+            <property name="margin-top">2</property>
+            <style>
+              <class name="key-label"/>
+            </style>
+          </object>
+        </child>
+        <!-- Function（左上） -->
+        <child type="overlay">
+          <object class="GtkLabel" id="label_func">
+            <property name="halign">start</property>
+            <property name="valign">start</property>
+            <property name="margin-start">2</property>
+            <property name="margin-top">2</property>
+            <style>
+              <class name="key-label"/>
+            </style>
           </object>
         </child>
       </object>

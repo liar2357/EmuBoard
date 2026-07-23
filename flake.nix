@@ -17,7 +17,7 @@
     in
     {
       devShells.${system} = {
-        default = shells.rust_gtk_depnds;
+        default = shells.rust_gtk;
       };
     };
 }

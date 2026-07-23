@@ -1,8 +1,11 @@
-use std::sync::mpsc::Sender;
+use std::sync::{Arc, mpsc::Sender};
 
 use crate::{
     input::structs::InputCommand,
-    ui::structs::{KeyDef, Keyboard},
+    ui::{
+        monitor::setup_monitor,
+        structs::{KeyDef, KeyLabelTable, Keyboard},
+    },
 };
 
 use gtk::{
@@ -12,28 +15,43 @@ use gtk::{
 
 use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
 
-const SCALING_RATIO: f32 = 8.0;
-const SCALING_UNIT: i32 = 5;
-const ROW_SPACE: u32 = 5;
-const COL_SPACE: u32 = 5;
+const SCALING_UNIT_COL: i32 = 5;
+const SCALING_UNIT_ROW: i32 = 3;
+const COL_SPACE: i32 = 3;
+const ROW_SPACE: i32 = 3;
 
 enum CLTag {
     Width,
     Height,
 }
 
-fn key_scaling(base: f32) -> i32 {
-    (base * SCALING_RATIO).floor() as i32
+fn calc_key_base_scale(kb: Arc<Keyboard>, global_width: i32) -> i32 {
+    let all_unit_in_line = kb.calc_key_unit_in_line();
+    let col_space_sum = COL_SPACE * (all_unit_in_line - 1);
+
+    dbg!(((dbg!(global_width) - col_space_sum) / dbg!(all_unit_in_line) / SCALING_UNIT_COL) as i32)
 }
 
-fn calc_length(mode: CLTag, base: f32) -> i32 {
-    key_scaling(base) * SCALING_UNIT
-        + (base - 1.0).floor() as i32
-            * if let CLTag::Height = mode {
-                ROW_SPACE
-            } else {
-                COL_SPACE
-            } as i32
+fn key_scaling(base: i32, scale: i32) -> i32 {
+    base * scale
+}
+
+fn calc_length(mode: CLTag, base: i32, scale: i32) -> i32 {
+    let key_length = key_scaling(base, scale)
+        * if let CLTag::Height = mode {
+            SCALING_UNIT_ROW
+        } else {
+            SCALING_UNIT_COL
+        };
+
+    let space_length = (base - 1)
+        * if let CLTag::Height = mode {
+            COL_SPACE
+        } else {
+            ROW_SPACE
+        };
+
+    key_length + space_length
 }
 
 fn load_css() {
@@ -48,18 +66,25 @@ fn load_css() {
     );
 }
 
-pub fn create_key(key: &KeyDef, tx: Sender<InputCommand>) -> gtk::Frame {
+pub fn create_key(
+    klt: &mut KeyLabelTable,
+    key: &KeyDef,
+    key_addr: (usize, usize),
+    tx: Sender<InputCommand>,
+) -> gtk::Frame {
     let builder = gtk::Builder::from_file("resources/key.ui");
 
     let frame: gtk::Frame = builder.object("key_root").unwrap();
 
     let normal: gtk::Label = builder.object::<gtk::Label>("label_normal").unwrap();
     let shift: gtk::Label = builder.object::<gtk::Label>("label_shift").unwrap();
+    let func: gtk::Label = builder.object::<gtk::Label>("label_func").unwrap();
 
-    normal.set_label(key.label(false));
-    shift.set_label(key.label(true));
+    normal.set_label(key.label(false, false));
+    shift.set_label(key.label(true, false));
+    func.set_label(key.label(false, true));
 
-    let key_code = key.key_code();
+    klt.append(key_addr, (normal, shift, func));
 
     let gesture = GestureClick::new();
 
@@ -67,8 +92,7 @@ pub fn create_key(key: &KeyDef, tx: Sender<InputCommand>) -> gtk::Frame {
         let tx = tx.clone();
 
         gesture.connect_pressed(move |_, _, _, _| {
-            println!("Send Event DOWN:{:?}", key_code);
-            let _ = tx.send(InputCommand::KeyDown(key_code));
+            let _ = tx.send(InputCommand::KeyDown(key_addr));
         });
     }
 
@@ -76,8 +100,7 @@ pub fn create_key(key: &KeyDef, tx: Sender<InputCommand>) -> gtk::Frame {
         let tx = tx.clone();
 
         gesture.connect_released(move |_, _, _, _| {
-            println!("Send Event UP:{:?}", key_code);
-            let _ = tx.send(InputCommand::KeyUp(key_code));
+            let _ = tx.send(InputCommand::KeyUp(key_addr));
         });
     }
 
@@ -86,7 +109,13 @@ pub fn create_key(key: &KeyDef, tx: Sender<InputCommand>) -> gtk::Frame {
     frame
 }
 
-pub fn build_ui(app: &Application, keyboard: &Keyboard, tx: Sender<InputCommand>) {
+pub fn build_ui(
+    app: &Application,
+    keyboard: Arc<Keyboard>,
+    klt: &mut KeyLabelTable,
+    tx: Sender<InputCommand>,
+    default_monitor: &str,
+) {
     println!("WAYLAND_DISPLAY={:?}", std::env::var("WAYLAND_DISPLAY"));
     println!("XDG_SESSION_TYPE={:?}", std::env::var("XDG_SESSION_TYPE"));
     println!("LayerShell supported={}", gtk4_layer_shell::is_supported());
@@ -102,21 +131,20 @@ pub fn build_ui(app: &Application, keyboard: &Keyboard, tx: Sender<InputCommand>
 
     window.set_anchor(Edge::Bottom, true);
 
-    window.set_anchor(Edge::Left, false);
-    window.set_anchor(Edge::Right, false);
+    window.set_anchor(Edge::Left, true);
+    window.set_anchor(Edge::Right, true);
 
     window.set_keyboard_mode(KeyboardMode::None);
     window.set_exclusive_zone(0);
 
-    window.connect_map(|window| {
-        println!("window size: {}x{}", window.width(), window.height());
-    });
-
     window.set_namespace(Some("osk"));
 
+    let global_width = setup_monitor(&window, default_monitor).unwrap_or(1200);
+    let key_base_scale = calc_key_base_scale(keyboard.clone(), global_width);
+
     let grid: Grid = builder.object::<Grid>("grid").unwrap();
-    grid.set_row_spacing(ROW_SPACE);
-    grid.set_column_spacing(COL_SPACE);
+    grid.set_row_spacing(ROW_SPACE as u32);
+    grid.set_column_spacing(COL_SPACE as u32);
 
     grid.set_halign(gtk::Align::Center);
     grid.set_valign(gtk::Align::End);
@@ -126,22 +154,20 @@ pub fn build_ui(app: &Application, keyboard: &Keyboard, tx: Sender<InputCommand>
     let mut c_num: i32;
     let mut r_num: i32 = 0;
 
-    for line in keyboard.rows.iter() {
+    for (r, line) in keyboard.rows.iter().enumerate() {
         c_num = 0;
         let mut rn_temp = i32::MAX;
 
-        for key in line.keys.iter() {
-            //dbg!(&key);
-            //dbg!(&c_num);
-            //dbg!(&r_num);
+        for (c, key) in line.keys.iter().enumerate() {
+            dbg!(&c_num);
 
-            let fixed_w = key_scaling(key.width());
-            let fixed_h = key_scaling(key.height());
-            let btn = create_key(key, tx.clone());
+            let fixed_w = dbg!(key_scaling(key.width(), key_base_scale));
+            let fixed_h = dbg!(key_scaling(key.height(), key_base_scale));
+            let btn = create_key(klt, key, (r, c), tx.clone());
 
             btn.set_size_request(
-                calc_length(CLTag::Width, key.width()),
-                calc_length(CLTag::Height, key.height()),
+                dbg!(calc_length(CLTag::Width, key.width(), key_base_scale)),
+                dbg!(calc_length(CLTag::Height, key.height(), key_base_scale)),
             );
 
             btn.set_hexpand(false);
@@ -156,6 +182,8 @@ pub fn build_ui(app: &Application, keyboard: &Keyboard, tx: Sender<InputCommand>
             if rn_temp > fixed_h {
                 rn_temp = fixed_h;
             }
+
+            dbg!()
         }
 
         r_num += rn_temp;
