@@ -4,7 +4,7 @@ use crate::{
     ui::{
         builder::build_ui,
         load::load_keyboard,
-        structs::{KeyLabelTable, Keyboard, UiEvent},
+        structs::{KeyComponentsTable, Keyboard, StyleCtl, UiEvent},
     },
 };
 use gtk::Application;
@@ -19,6 +19,7 @@ use std::{
 
 pub fn run() -> gtk::glib::ExitCode {
     let config: Config = load_config();
+    eprintln!("{:?}", config);
 
     let keyboard: Arc<Keyboard> = Arc::new(load_keyboard(&config.layout));
 
@@ -29,7 +30,7 @@ pub fn run() -> gtk::glib::ExitCode {
     let arc_kb = Arc::clone(&keyboard);
 
     thread::spawn(move || {
-        run_input_thread(rx_ic, tx_ue, arc_kb);
+        run_input_thread(rx_ic, tx_ue, arc_kb, config.hold_mode);
     });
 
     let app = Application::builder()
@@ -39,26 +40,34 @@ pub fn run() -> gtk::glib::ExitCode {
     app.connect_activate(move |app| {
         let rx_ue = rx_ue.borrow_mut().take().expect("activate called twice");
 
-        let klt = Rc::new(RefCell::new(KeyLabelTable::new()));
+        let kct = Rc::new(RefCell::new(KeyComponentsTable::new()));
 
         build_ui(
             app,
             Arc::clone(&keyboard),
-            &mut klt.borrow_mut(),
+            &mut kct.borrow_mut(),
             tx_ic.clone(),
             &config.default_monitor,
         );
 
-        let klt_for_timer = Rc::clone(&klt);
+        let kct_for_timer = Rc::clone(&kct);
 
         gtk::glib::timeout_add_local(Duration::from_millis(16), move || {
             while let Ok(cmd) = rx_ue.try_recv() {
                 match cmd {
                     UiEvent::SetKeyText { pos, texts } => {
-                        klt_for_timer
+                        kct_for_timer
                             .borrow_mut()
                             .set_text(pos, (&texts.0, &texts.1, &texts.2));
                     }
+                    UiEvent::CtlKeyStyle { pos, mode, name } => match mode {
+                        StyleCtl::Add => {
+                            kct_for_timer.borrow_mut().add_css_class(pos, name.as_str());
+                        }
+                        StyleCtl::Rmv => {
+                            kct_for_timer.borrow_mut().rmv_css_class(pos, name.as_str());
+                        }
+                    },
                 }
             }
 

@@ -1,4 +1,5 @@
 use crate::{
+    config::structs::HoldMode,
     input::structs::{InputCommand, InputSender},
     ui::structs::{Keyboard, UiEvent},
 };
@@ -8,10 +9,15 @@ use std::sync::{
     mpsc::{Receiver, Sender},
 };
 
-pub fn run_input_thread(rx_ic: Receiver<InputCommand>, tx_ue: Sender<UiEvent>, kb: Arc<Keyboard>) {
+pub fn run_input_thread(
+    rx_ic: Receiver<InputCommand>,
+    tx_ue: Sender<UiEvent>,
+    kb: Arc<Keyboard>,
+    hm: HoldMode,
+) {
     println!("THREAD START");
 
-    let mut sender = InputSender::new(kb, tx_ue).unwrap();
+    let mut sender = InputSender::new(kb, tx_ue, hm).unwrap();
 
     while let Ok(cmd) = rx_ic.recv() {
         match cmd {

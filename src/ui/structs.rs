@@ -1,4 +1,5 @@
 use evdevil::event::Key;
+use gtk::prelude::WidgetExt;
 use serde::Deserialize;
 use std::{cmp::max, collections::HashSet};
 
@@ -109,6 +110,20 @@ impl Keyboard {
 
     pub fn get_keydef_by_addr(&self, (r, c): (usize, usize)) -> &KeyDef {
         &self.rows[r].keys[c]
+    }
+
+    pub fn get_keydefs_by_names(&self, names: Vec<&String>) -> Vec<&KeyDef> {
+        let mut work = vec![];
+
+        for line in self.rows.iter() {
+            for def in line.keys.iter() {
+                if names.contains(&&def.get_key_name()) {
+                    work.push(def);
+                }
+            }
+        }
+
+        work
     }
 }
 
@@ -353,6 +368,38 @@ impl KeyDef {
 
         set
     }
+
+    pub fn is_modifier(&self) -> bool {
+        match self {
+            KeyDef::Char { .. } | KeyDef::Multi { .. } => false,
+            KeyDef::Special { logical, .. } => matches!(
+                logical,
+                LogicalKey::LAlt
+                    | LogicalKey::RAlt
+                    | LogicalKey::LCtrl
+                    | LogicalKey::RCtrl
+                    | LogicalKey::LShift
+                    | LogicalKey::RShift
+                    | LogicalKey::LSuper
+                    | LogicalKey::RSuper
+            ),
+
+            KeyDef::Custom { custom, .. } => matches!(custom, CustomKey::Fn),
+        }
+    }
+
+    pub fn get_key_name(&self) -> String {
+        match self {
+            KeyDef::Char { keycode, .. } => keycode.clone(),
+            KeyDef::Special { logical, .. } => format!("{:?}", logical),
+            KeyDef::Custom { custom, .. } => format!("{:?}", custom),
+            KeyDef::Multi { key, .. } => format!(
+                "multi({:?},{:?})",
+                key[0].get_key_name(),
+                key[1].get_key_name()
+            ),
+        }
+    }
 }
 
 fn default_width() -> i32 {
@@ -363,32 +410,46 @@ fn default_height() -> i32 {
     1
 }
 
-pub struct KeyLabel {
+pub struct KeyComponents {
+    frame: gtk::Frame,
     nomal: gtk::Label,
     shift: gtk::Label,
     func: gtk::Label,
 }
-impl KeyLabel {
+impl KeyComponents {
     pub fn set_text(&mut self, texts: (&str, &str, &str)) {
         self.nomal.set_label(texts.0);
         self.shift.set_label(texts.1);
         self.func.set_label(texts.2);
     }
+
+    pub fn add_css_class(&mut self, class_name: &str) {
+        self.frame.add_css_class(class_name);
+    }
+
+    pub fn rmv_css_class(&mut self, class_name: &str) {
+        self.frame.remove_css_class(class_name);
+    }
 }
 
-pub struct KeyLabelTable {
-    table: Vec<Vec<KeyLabel>>,
+pub struct KeyComponentsTable {
+    table: Vec<Vec<KeyComponents>>,
 }
-impl KeyLabelTable {
+impl KeyComponentsTable {
     pub fn new() -> Self {
         Self { table: vec![] }
     }
 
-    pub fn append(&mut self, addr: (usize, usize), obj: (gtk::Label, gtk::Label, gtk::Label)) {
-        let work = KeyLabel {
-            nomal: obj.0,
-            shift: obj.1,
-            func: obj.2,
+    pub fn append(
+        &mut self,
+        addr: (usize, usize),
+        obj: (gtk::Frame, gtk::Label, gtk::Label, gtk::Label),
+    ) {
+        let work = KeyComponents {
+            frame: obj.0,
+            nomal: obj.1,
+            shift: obj.2,
+            func: obj.3,
         };
 
         if addr.1 == 0 {
@@ -401,11 +462,29 @@ impl KeyLabelTable {
     pub fn set_text(&mut self, addr: (usize, usize), texts: (&str, &str, &str)) {
         self.table[addr.0][addr.1].set_text(texts);
     }
+
+    pub fn add_css_class(&mut self, addr: (usize, usize), class_name: &str) {
+        self.table[addr.0][addr.1].add_css_class(class_name);
+    }
+
+    pub fn rmv_css_class(&mut self, addr: (usize, usize), class_name: &str) {
+        self.table[addr.0][addr.1].rmv_css_class(class_name);
+    }
+}
+
+pub enum StyleCtl {
+    Add,
+    Rmv,
 }
 
 pub enum UiEvent {
     SetKeyText {
         pos: (usize, usize),
         texts: (String, String, String),
+    },
+    CtlKeyStyle {
+        pos: (usize, usize),
+        mode: StyleCtl,
+        name: String,
     },
 }

@@ -7,14 +7,14 @@
   font-size: 10px;
 }
 
-.key:hover {
-  background-color: #ccc;
-}
-
 .key:active {
   background-color: #555;
 }
 
 .key-label {
   font-size: 14px;
+}
+
+.holded-key {
+  background-color: #ff8080;
 }

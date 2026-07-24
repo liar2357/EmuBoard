@@ -4,7 +4,7 @@ use crate::{
     input::structs::InputCommand,
     ui::{
         monitor::setup_monitor,
-        structs::{KeyDef, KeyLabelTable, Keyboard},
+        structs::{KeyComponentsTable, KeyDef, Keyboard},
     },
 };
 
@@ -67,11 +67,10 @@ fn load_css() {
 }
 
 pub fn create_key(
-    klt: &mut KeyLabelTable,
     key: &KeyDef,
     key_addr: (usize, usize),
     tx: Sender<InputCommand>,
-) -> gtk::Frame {
+) -> (gtk::Frame, gtk::Label, gtk::Label, gtk::Label) {
     let builder = gtk::Builder::from_file("resources/key.ui");
 
     let frame: gtk::Frame = builder.object("key_root").unwrap();
@@ -83,8 +82,6 @@ pub fn create_key(
     normal.set_label(key.label(false, false));
     shift.set_label(key.label(true, false));
     func.set_label(key.label(false, true));
-
-    klt.append(key_addr, (normal, shift, func));
 
     let gesture = GestureClick::new();
 
@@ -106,19 +103,19 @@ pub fn create_key(
 
     frame.add_controller(gesture);
 
-    frame
+    (frame, normal, shift, func)
 }
 
 pub fn build_ui(
     app: &Application,
     keyboard: Arc<Keyboard>,
-    klt: &mut KeyLabelTable,
+    kct: &mut KeyComponentsTable,
     tx: Sender<InputCommand>,
     default_monitor: &str,
 ) {
-    println!("WAYLAND_DISPLAY={:?}", std::env::var("WAYLAND_DISPLAY"));
-    println!("XDG_SESSION_TYPE={:?}", std::env::var("XDG_SESSION_TYPE"));
-    println!("LayerShell supported={}", gtk4_layer_shell::is_supported());
+    eprintln!("WAYLAND_DISPLAY={:?}", std::env::var("WAYLAND_DISPLAY"));
+    eprintln!("XDG_SESSION_TYPE={:?}", std::env::var("XDG_SESSION_TYPE"));
+    eprintln!("LayerShell supported={}", gtk4_layer_shell::is_supported());
 
     load_css();
 
@@ -159,15 +156,13 @@ pub fn build_ui(
         let mut rn_temp = i32::MAX;
 
         for (c, key) in line.keys.iter().enumerate() {
-            dbg!(&c_num);
-
-            let fixed_w = dbg!(key_scaling(key.width(), key_base_scale));
-            let fixed_h = dbg!(key_scaling(key.height(), key_base_scale));
-            let btn = create_key(klt, key, (r, c), tx.clone());
+            let fixed_w = key_scaling(key.width(), key_base_scale);
+            let fixed_h = key_scaling(key.height(), key_base_scale);
+            let (btn, l1, l2, l3) = create_key(key, (r, c), tx.clone());
 
             btn.set_size_request(
-                dbg!(calc_length(CLTag::Width, key.width(), key_base_scale)),
-                dbg!(calc_length(CLTag::Height, key.height(), key_base_scale)),
+                calc_length(CLTag::Width, key.width(), key_base_scale),
+                calc_length(CLTag::Height, key.height(), key_base_scale),
             );
 
             btn.set_hexpand(false);
@@ -178,12 +173,12 @@ pub fn build_ui(
 
             grid.attach(&btn, c_num, r_num, fixed_w, fixed_h);
 
+            kct.append((r, c), (btn, l1, l2, l3));
+
             c_num += fixed_w;
             if rn_temp > fixed_h {
                 rn_temp = fixed_h;
             }
-
-            dbg!()
         }
 
         r_num += rn_temp;
