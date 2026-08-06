@@ -1,6 +1,7 @@
 use std::sync::{Arc, mpsc::Sender};
 
 use crate::{
+    config::structs::UiPlace,
     input::structs::InputCommand,
     ui::{
         monitor::setup_monitor,
@@ -57,7 +58,7 @@ fn calc_length(mode: CLTag, base: i32, scale: i32) -> i32 {
 fn load_css() {
     let provider = CssProvider::new();
 
-    provider.load_from_path("resources/style.css");
+    provider.load_from_resource("/io/github/liar2357/emu-board/css/style.css");
 
     style_context_add_provider_for_display(
         &gdk::Display::default().unwrap(),
@@ -71,7 +72,7 @@ pub fn create_key(
     key_addr: (usize, usize),
     tx: Sender<InputCommand>,
 ) -> (gtk::Frame, gtk::Label, gtk::Label, gtk::Label) {
-    let builder = gtk::Builder::from_file("resources/key.ui");
+    let builder = gtk::Builder::from_resource("/io/github/liar2357/emu-board/ui/key.ui");
 
     let frame: gtk::Frame = builder.object("key_root").unwrap();
 
@@ -112,21 +113,29 @@ pub fn build_ui(
     kct: &mut KeyComponentsTable,
     tx: Sender<InputCommand>,
     default_monitor: &str,
-) {
+    default_ui_view: &bool,
+    default_ui_place: &UiPlace,
+) -> ApplicationWindow {
     eprintln!("WAYLAND_DISPLAY={:?}", std::env::var("WAYLAND_DISPLAY"));
     eprintln!("XDG_SESSION_TYPE={:?}", std::env::var("XDG_SESSION_TYPE"));
     eprintln!("LayerShell supported={}", gtk4_layer_shell::is_supported());
 
     load_css();
 
-    let builder = gtk::Builder::from_file("resources/main.ui");
+    let builder = gtk::Builder::from_resource("/io/github/liar2357/emu-board/ui/main.ui");
 
     let window: ApplicationWindow = builder.object::<ApplicationWindow>("main_window").unwrap();
 
     window.init_layer_shell();
     window.set_layer(Layer::Overlay);
 
-    window.set_anchor(Edge::Bottom, true);
+    window.set_anchor(
+        match default_ui_place {
+            UiPlace::Upper => Edge::Top,
+            UiPlace::Lower => Edge::Bottom,
+        },
+        true,
+    );
 
     window.set_anchor(Edge::Left, true);
     window.set_anchor(Edge::Right, true);
@@ -134,7 +143,7 @@ pub fn build_ui(
     window.set_keyboard_mode(KeyboardMode::None);
     window.set_exclusive_zone(0);
 
-    window.set_namespace(Some("osk"));
+    window.set_namespace(Some(env!("CARGO_PKG_NAME")));
 
     let global_width = setup_monitor(&window, default_monitor).unwrap_or(1200);
     let key_base_scale = calc_key_base_scale(keyboard.clone(), global_width);
@@ -185,4 +194,7 @@ pub fn build_ui(
     }
 
     window.present();
+    window.set_visible(*default_ui_view);
+
+    window
 }

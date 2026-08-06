@@ -34,10 +34,8 @@ keys = [
   { type = "char", label = "-", shifted = "=", keycode = "MINUS" },
   { type = "char", label = "^", shifted = "~", keycode = "EQUAL" },
   { type = "char", label = "￥", shifted = "|", keycode = "YEN" },
-  { type = "multi", key = [
-    { type = "special", label = "BS", logical = "Backspace" },
-    { type = "special", label = "Del", logical = "Delete" },
-  ] },
+  { type = "special", label = "BS", logical = "Backspace" },
+  { type = "special", label = "Del", logical = "Delete" },
 ]
 
 

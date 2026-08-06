@@ -1,8 +1,5 @@
-mod app;
-mod config;
-mod input;
-mod ui;
+use emu_board::app::run;
 
 fn main() -> gtk::glib::ExitCode {
-    crate::app::run()
+    run()
 }

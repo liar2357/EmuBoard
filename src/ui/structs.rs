@@ -471,6 +471,11 @@ impl KeyComponentsTable {
         self.table[addr.0][addr.1].rmv_css_class(class_name);
     }
 }
+impl Default for KeyComponentsTable {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 pub enum StyleCtl {
     Add,

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/io/github/liar2357/emu-board">
+    <file>ui/main.ui</file>
+    <file>ui/key.ui</file>
+    <file>css/style.css</file>
+    <file>layout/JIS-QWERTY.toml</file>
+  </gresource>
+</gresources>
