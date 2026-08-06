@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Emu Board
+Comment=Wayland Screen Keyboard
+Exec=emu-board
+Icon=emu-board
+Terminal=false
+Categories=Utility;
+StartupNotify=true

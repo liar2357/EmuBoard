@@ -1,23 +1,48 @@
 {
+  description = "Emu Board";
+
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    common.url = "github:liar2357/nix-dev-common"; # または Git URL
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
+    flake-utils.url = "github:numtide/flake-utils";
+
+    common.url = "github:liar2357/nix-dev-common";
   };
 
   outputs =
     {
       self,
       nixpkgs,
+      flake-utils,
       common,
     }:
-    let
-      system = "x86_64-linux";
-      pkgs = import nixpkgs { inherit system; };
-      shells = common.devShells.${system};
-    in
-    {
-      devShells.${system} = {
-        default = shells.rust_gtk;
-      };
-    };
+
+    flake-utils.lib.eachDefaultSystem (
+      system:
+
+      let
+        pkgs = import nixpkgs {
+          inherit system;
+        };
+      in
+      {
+        #
+        # 開発環境
+        #
+        devShells.default = common.devShells.${system}.rust_gtk;
+
+        #
+        # パッケージ
+        #
+        packages.default = pkgs.callPackage ./package.nix { };
+
+        #
+        # nix run
+        #
+        apps.default = {
+          type = "app";
+          program = "${self.packages.${system}.default}/bin/emu-board";
+        };
+      }
+    );
 }
