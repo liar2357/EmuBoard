@@ -1,0 +1,118 @@
+[[rows]]
+keys = [
+  { type = "special", label = "Esc", logical = "Escape" },
+  { type = "special", label = "F1", logical = "F1" },
+  { type = "special", label = "F2", logical = "F2" },
+  { type = "special", label = "F3", logical = "F3" },
+  { type = "special", label = "F4", logical = "F4" },
+  { type = "special", label = "F5", logical = "F5" },
+  { type = "special", label = "F6", logical = "F6" },
+  { type = "special", label = "F7", logical = "F7" },
+  { type = "special", label = "F8", logical = "F8" },
+  { type = "special", label = "F9", logical = "F9" },
+  { type = "special", label = "F10", logical = "F10" },
+  { type = "special", label = "F11", logical = "F11" },
+  { type = "special", label = "F12", logical = "F12" },
+  { type = "special", label = "Pause", logical = "Pause" },
+  { type = "special", label = "Prt Sc", logical = "PrintScreen" },
+  { type = "special", label = "Ins", logical = "Insert" },
+]
+
+[[rows]]
+keys = [
+  { type = "char", label = "`", shifted = "~", keycode = "GRAVE" },
+  { type = "char", label = "1", shifted = "!", keycode = "1" },
+  { type = "char", label = "2", shifted = "@", keycode = "2" },
+  { type = "char", label = "3", shifted = "#", keycode = "3" },
+  { type = "char", label = "4", shifted = "$", keycode = "4" },
+  { type = "char", label = "5", shifted = "%", keycode = "5" },
+  { type = "char", label = "6", shifted = "^", keycode = "6" },
+  { type = "char", label = "7", shifted = "&", keycode = "7" },
+  { type = "char", label = "8", shifted = "*", keycode = "8" },
+  { type = "char", label = "9", shifted = "(", keycode = "9" },
+  { type = "char", label = "0", shifted = ")", keycode = "0" },
+  { type = "char", label = "-", shifted = "_", keycode = "MINUS" },
+  { type = "char", label = "=", shifted = "+", keycode = "EQUAL" },
+  { type = "special", label = "BS", width = 2, logical = "Backspace" },
+  { type = "special", label = "Del", logical = "Delete" },
+]
+
+
+[[rows]]
+keys = [
+  { type = "special", label = "TAB", width = 2, logical = "Tab" },
+  { type = "char", label = "q", shifted = "Q", keycode = "Q" },
+  { type = "char", label = "w", shifted = "W", keycode = "W" },
+  { type = "char", label = "e", shifted = "E", keycode = "E" },
+  { type = "char", label = "r", shifted = "R", keycode = "R" },
+  { type = "char", label = "t", shifted = "T", keycode = "T" },
+  { type = "char", label = "y", shifted = "Y", keycode = "Y" },
+  { type = "char", label = "u", shifted = "U", keycode = "U" },
+  { type = "char", label = "i", shifted = "I", keycode = "I" },
+  { type = "char", label = "o", shifted = "O", keycode = "O" },
+  { type = "char", label = "p", shifted = "P", keycode = "P" },
+  { type = "char", label = "[", shifted = "{", keycode = "LEFTBRACE" },
+  { type = "char", label = "]", shifted = "}", keycode = "RIGHTBRACE" },
+  { type = "char", label = "\\", shifted = "|", keycode = "BACKSLASH" },
+]
+
+[[rows]]
+keys = [
+  { type = "special", label = "CAPS", width = 2, logical = "CapsLock" },
+  { type = "char", label = "a", shifted = "A", keycode = "A" },
+  { type = "char", label = "s", shifted = "S", keycode = "S" },
+  { type = "char", label = "d", shifted = "D", keycode = "D" },
+  { type = "char", label = "f", shifted = "F", keycode = "F" },
+  { type = "char", label = "g", shifted = "G", keycode = "G" },
+  { type = "char", label = "h", shifted = "H", keycode = "H" },
+  { type = "char", label = "j", shifted = "J", keycode = "J" },
+  { type = "char", label = "k", shifted = "K", keycode = "K" },
+  { type = "char", label = "l", shifted = "L", keycode = "L" },
+  { type = "char", label = ";", shifted = ":", keycode = "SEMICOLON" },
+  { type = "char", label = "'", shifted = "\"", keycode = "APOSTROPHE" },
+  { type = "special", label = "Enter", width = 2, logical = "Enter" },
+]
+
+[[rows]]
+keys = [
+  { type = "special", label = "Shift", width = 2, logical = "LShift" },
+  { type = "char", label = "z", shifted = "Z", keycode = "Z" },
+  { type = "char", label = "x", shifted = "X", keycode = "X" },
+  { type = "char", label = "c", shifted = "C", keycode = "C" },
+  { type = "char", label = "v", shifted = "V", keycode = "V" },
+  { type = "char", label = "b", shifted = "B", keycode = "B" },
+  { type = "char", label = "n", shifted = "N", keycode = "N" },
+  { type = "char", label = "m", shifted = "M", keycode = "M" },
+  { type = "char", label = ",", shifted = "<", keycode = "COMMA" },
+  { type = "char", label = ".", shifted = ">", keycode = "DOT" },
+  { type = "char", label = "/", shifted = "?", keycode = "SLASH" },
+  { type = "special", label = "Shift", width = 2, logical = "RShift" },
+  { type = "multi", key = [
+    { type = "special", label = "↑", logical = "ArrowUp" },
+    { type = "special", label = "pg up", logical = "PageUp" },
+  ] },
+]
+
+[[rows]]
+keys = [
+  { type = "special", label = "Ctrl", logical = "LCtrl" },
+  { type = "special", label = "Super", logical = "LSuper" },
+  { type = "special", label = "Alt", logical = "LAlt" },
+  { type = "custom", label = "Fn", custom = "Fn" },
+  { type = "special", label = "Space", width = 6, logical = "Space" },
+  { type = "special", label = "Alt", logical = "RAlt" },
+  { type = "special", label = "App", logical = "RSuper" },
+  { type = "special", label = "Ctrl", logical = "RCtrl" },
+  { type = "multi", key = [
+    { type = "special", label = "←", logical = "ArrowLeft" },
+    { type = "special", label = "home", logical = "Home" },
+  ] },
+  { type = "multi", key = [
+    { type = "special", label = "↓", logical = "ArrowDown" },
+    { type = "special", label = "pg dn", logical = "PageDown" },
+  ] },
+  { type = "multi", key = [
+    { type = "special", label = "→", logical = "ArrowRight" },
+    { type = "special", label = "end", logical = "End" },
+  ] },
+]

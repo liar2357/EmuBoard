@@ -13,7 +13,7 @@
 rustPlatform.buildRustPackage {
 
   pname = "emu-board";
-  version = "0.9.0";
+  version = "0.1.0";
 
   src = ./.;
 
@@ -33,8 +33,7 @@ rustPlatform.buildRustPackage {
   installPhase = ''
     runHook preInstall
 
-    mkdir -p $out/bin
-
+    # 実行ファイル
     install -Dm755 \
       target/release/emu-board \
       $out/bin/emu-board
@@ -43,19 +42,19 @@ rustPlatform.buildRustPackage {
       target/release/emu-boardctl \
       $out/bin/emu-boardctl
 
-    mkdir -p \
-      $out/share/applications
+    # Desktop Entry
+    install -Dm644 \
+      data/emu-board.desktop \
+      $out/share/applications/emu-board.desktop
+
+    # Icons
+    install -Dm644 \
+      data/icons/64x64/emu-board.png \
+      $out/share/icons/hicolor/64x64/apps/emu-board.png
 
     install -Dm644 \
-      data/io.github.liar2357.emu-board.desktop \
-      $out/share/applications/io.github.liar2357.emu-board.desktop
-
-    mkdir -p \
-      $out/share/icons/hicolor/scalable/apps
-
-    install -Dm644 \
-      data/icons/scalable/io.github.liar2357.emu-board.svg \
-      $out/share/icons/hicolor/scalable/apps/io.github.liar2357.emu-board.svg
+      data/icons/128x128/emu-board.png \
+      $out/share/icons/hicolor/128x128/apps/emu-board.png
 
     runHook postInstall
   '';

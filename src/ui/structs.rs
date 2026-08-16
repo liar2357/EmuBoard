@@ -285,6 +285,7 @@ impl KeyDef {
                 "DOT" => Key::KEY_DOT,
                 "SLASH" => Key::KEY_SLASH,
                 "RO" => Key::KEY_RO,
+                "GRAVE" => Key::KEY_GRAVE,
 
                 _ => panic!(),
             }),
