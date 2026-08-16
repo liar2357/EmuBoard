@@ -1,5 +1,6 @@
 {
   lib,
+  stdenv,
   rustPlatform,
 
   pkg-config,
@@ -31,29 +32,26 @@ rustPlatform.buildRustPackage {
   ];
 
   installPhase = ''
-    runHook preInstall
+      runHook preInstall
 
-    echo "=== target ==="
-    find target -maxdepth 3 -type f -executable -print || true
+      echo "=== target ==="
+      find target -maxdepth 3 -type f -executable -print || true
 
-    echo "=== cargo target ==="
-    find . -maxdepth 4 -type f -name 'emu-board*' -print || true
+      echo "=== cargo target ==="
+      find . -maxdepth 4 -type f -name 'emu-board*' -print || true
 
-    # 実行ファイル
-    install -Dm755 \
-      target/release/emu-board \
+     install -Dm755 \
+      target/${stdenv.hostPlatform.rust.rustcTarget}/release/emu-board \
       $out/bin/emu-board
 
     install -Dm755 \
-      target/release/emu-boardctl \
+      target/${stdenv.hostPlatform.rust.rustcTarget}/release/emu-boardctl \
       $out/bin/emu-boardctl
 
-    # Desktop Entry
     install -Dm644 \
       data/emu-board.desktop \
       $out/share/applications/emu-board.desktop
 
-    # Icons
     install -Dm644 \
       data/icons/64x64/emu-board.png \
       $out/share/icons/hicolor/64x64/apps/emu-board.png
@@ -61,8 +59,7 @@ rustPlatform.buildRustPackage {
     install -Dm644 \
       data/icons/128x128/emu-board.png \
       $out/share/icons/hicolor/128x128/apps/emu-board.png
-
-    runHook postInstall
+      runHook postInstall
   '';
 
   meta = with lib; {
