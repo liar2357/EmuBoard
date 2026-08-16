@@ -33,6 +33,12 @@ rustPlatform.buildRustPackage {
   installPhase = ''
     runHook preInstall
 
+    echo "=== target ==="
+    find target -maxdepth 3 -type f -executable -print || true
+
+    echo "=== cargo target ==="
+    find . -maxdepth 4 -type f -name 'emu-board*' -print || true
+
     # 実行ファイル
     install -Dm755 \
       target/release/emu-board \
