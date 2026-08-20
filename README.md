@@ -97,13 +97,13 @@ The configuration required to grant access varies depending on the distribution.
 
 ### Configuration Options
 
-| Option             | Description                              | Default      |
-| ------------------ | ---------------------------------------- | ------------ |
-| "layout"           | Keyboard layout                          | "JIS-QWERTY" |
-| "hold_mode"        | Modifier key behavior                    | "None"       |
-| "default_monitor"  | Monitor on which to display the keyboard | "auto"       |
-| "default_ui_view"  | Whether to show the UI at startup        | true         |
-| "default_ui_place" | Position of the UI                       | "Lower"      |
+| Option           | Description                              | Default      |
+| ---------------- | ---------------------------------------- | ------------ |
+| layout           | Keyboard layout                          | "JIS-QWERTY" |
+| hold_mode        | Modifier key behavior                    | "None"       |
+| default_monitor  | Monitor on which to display the keyboard | "auto"       |
+| default_ui_view  | Whether to show the UI at startup        | true         |
+| default_ui_place | Position of the UI                       | "Lower"      |
 
 ### Example Configuration
 
