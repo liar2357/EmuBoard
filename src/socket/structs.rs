@@ -11,6 +11,7 @@ pub enum SocketCommand {
     ToggleUiPlace,
     UpperUiPlace,
     LowerUiPlace,
+    ReloadApp,
     ShutdownApp,
 }
 
@@ -23,6 +24,7 @@ impl SocketCommand {
             Self::ToggleUiPlace,
             Self::UpperUiPlace,
             Self::LowerUiPlace,
+            Self::ReloadApp,
             Self::ShutdownApp,
         ];
 
@@ -44,6 +46,7 @@ impl Display for SocketCommand {
             Self::ToggleUiPlace => "toggle_ui_place",
             Self::UpperUiPlace => "upper_ui_place",
             Self::LowerUiPlace => "lower_ui_place",
+            Self::ReloadApp => "reload_app",
             Self::ShutdownApp => "shutdown_app",
         };
 
@@ -62,6 +65,7 @@ impl FromStr for SocketCommand {
             "toggle_ui_place" => Ok(Self::ToggleUiPlace),
             "upper_ui_place" => Ok(Self::UpperUiPlace),
             "lower_ui_place" => Ok(Self::LowerUiPlace),
+            "reload_app" => Ok(SocketCommand::ReloadApp),
             "shutdown_app" => Ok(Self::ShutdownApp),
             _ => Err(()),
         }

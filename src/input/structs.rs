@@ -1,16 +1,15 @@
+use crate::{
+    app::structs::InputState,
+    config::structs::HoldMode,
+    ui::structs::{CustomKey, KeyDef, KeyWrap, StyleCtl, UiEvent},
+};
 use evdevil::{
     event::{KeyEvent, KeyState},
     uinput::UinputDevice,
 };
-
-use crate::{
-    config::structs::HoldMode,
-    ui::structs::{CustomKey, KeyDef, KeyWrap, Keyboard, StyleCtl, UiEvent},
-};
-
 use std::{
     collections::HashMap,
-    sync::{Arc, mpsc::Sender},
+    sync::{Arc, RwLock, mpsc::Sender},
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -21,31 +20,28 @@ pub enum InputCommand {
 
 pub struct InputSender {
     device: UinputDevice,
-    kb: Arc<Keyboard>,
+    input_state: Arc<RwLock<InputState>>,
     ui_eve_sender: Sender<UiEvent>,
 
     is_fn: bool,
-    hold_mode: HoldMode,
 
     modifier_map: HashMap<String, bool>,
 }
 
 impl InputSender {
     pub fn new(
-        kb: Arc<Keyboard>,
+        input_state: Arc<RwLock<InputState>>,
         ui_eve_sender: Sender<UiEvent>,
-        hm: HoldMode,
     ) -> anyhow::Result<Self> {
         let device = UinputDevice::builder()?
-            .with_keys(kb.supperted_keys())?
+            .with_keys(input_state.read().unwrap().kb_supperted_keys())?
             .build(env!("CARGO_PKG_NAME"))?;
 
         Ok(Self {
             device,
-            kb,
+            input_state,
             ui_eve_sender,
             is_fn: false,
-            hold_mode: hm,
             modifier_map: {
                 let mut map = HashMap::new();
                 map.insert("LAlt".to_string(), false);
@@ -63,13 +59,17 @@ impl InputSender {
     }
 
     pub fn key_down(&mut self, key_addr: (usize, usize)) -> std::io::Result<()> {
-        let key_ref = self.kb.get_keydef_by_addr(key_addr);
+        let is_g = self.input_state.read().unwrap();
+        let kb_g = is_g.get_kb_ref();
+        let conf_g = is_g.get_conf_ref();
+
+        let key_ref = kb_g.get_keydef_by_addr(key_addr);
 
         match key_ref.key_code(self.is_fn) {
             KeyWrap::Default(key) => {
                 eprintln!("PRESSED:{:?}", key);
 
-                let command = match self.hold_mode {
+                let command = match conf_g.hold_mode {
                     HoldMode::None => KeyState::PRESSED,
                     HoldMode::Hold | HoldMode::Toggle => {
                         if key_ref.is_modifier() && self.modifier_map[&key_ref.get_key_name()] {
@@ -88,7 +88,7 @@ impl InputSender {
 
                 self.device.write(&[KeyEvent::new(key, command).into()])?;
 
-                if matches!(self.hold_mode, HoldMode::Hold | HoldMode::Toggle)
+                if matches!(conf_g.hold_mode, HoldMode::Hold | HoldMode::Toggle)
                     && key_ref.is_modifier()
                 {
                     self.refresh_ui();
@@ -100,7 +100,7 @@ impl InputSender {
                 CustomKey::Fn => {
                     eprintln!("PRESSED:Fn");
 
-                    self.is_fn = match self.hold_mode {
+                    self.is_fn = match conf_g.hold_mode {
                         HoldMode::None => true,
                         HoldMode::Hold | HoldMode::Toggle => {
                             if self.modifier_map["Fn"] {
@@ -123,12 +123,16 @@ impl InputSender {
     }
 
     pub fn key_up(&mut self, key_addr: (usize, usize)) -> std::io::Result<()> {
-        let key_ref = self.kb.get_keydef_by_addr(key_addr);
+        let is_g = self.input_state.read().unwrap();
+        let kb_g = is_g.get_kb_ref();
+        let conf_g = is_g.get_conf_ref();
+
+        let key_ref = kb_g.get_keydef_by_addr(key_addr);
 
         match key_ref.key_code(self.is_fn) {
             KeyWrap::Default(key) => {
-                if matches!(self.hold_mode, HoldMode::None)
-                    || matches!(self.hold_mode, HoldMode::Hold | HoldMode::Toggle)
+                if matches!(conf_g.hold_mode, HoldMode::None)
+                    || matches!(conf_g.hold_mode, HoldMode::Hold | HoldMode::Toggle)
                         && !key_ref.is_modifier()
                 {
                     eprintln!("RELEASED:{:?}", key);
@@ -136,7 +140,7 @@ impl InputSender {
                     self.device
                         .write(&[KeyEvent::new(key, KeyState::RELEASED).into()])?;
 
-                    if matches!(self.hold_mode, HoldMode::Hold) {
+                    if matches!(conf_g.hold_mode, HoldMode::Hold) {
                         let mut names = vec![];
 
                         for (name, flg) in self.modifier_map.iter_mut() {
@@ -144,7 +148,7 @@ impl InputSender {
                             names.push(name);
                         }
 
-                        for mod_key_def in self.kb.get_keydefs_by_names(names) {
+                        for mod_key_def in kb_g.get_keydefs_by_names(names) {
                             if let KeyWrap::Default(mod_key) = mod_key_def.key_code(self.is_fn) {
                                 self.device
                                     .write(&[KeyEvent::new(mod_key, KeyState::RELEASED).into()])?;
@@ -155,7 +159,7 @@ impl InputSender {
                         self.refresh_ui();
                     }
 
-                    if matches!(self.hold_mode, HoldMode::Hold | HoldMode::Toggle)
+                    if matches!(conf_g.hold_mode, HoldMode::Hold | HoldMode::Toggle)
                         && key_ref.is_modifier()
                     {
                         self.refresh_ui();
@@ -166,7 +170,7 @@ impl InputSender {
             }
             KeyWrap::Custom(custom) => match custom {
                 CustomKey::Fn => {
-                    if matches!(self.hold_mode, HoldMode::None) {
+                    if matches!(conf_g.hold_mode, HoldMode::None) {
                         println!("RELEASED:Fn");
                         self.is_fn = false;
 
@@ -181,7 +185,11 @@ impl InputSender {
     }
 
     pub fn refresh_ui(&self) {
-        for (i, r) in self.kb.rows.iter().enumerate() {
+        let is_g = self.input_state.read().unwrap();
+        let kb_g = is_g.get_kb_ref();
+        let conf_g = is_g.get_conf_ref();
+
+        for (i, r) in kb_g.rows.iter().enumerate() {
             for (j, c) in r.keys.iter().enumerate() {
                 if let KeyDef::Multi { .. } = c {
                     if self.is_fn {
@@ -205,7 +213,7 @@ impl InputSender {
                     }
                 }
 
-                if matches!(self.hold_mode, HoldMode::Hold | HoldMode::Toggle)
+                if matches!(conf_g.hold_mode, HoldMode::Hold | HoldMode::Toggle)
                     && c.is_modifier()
                     && self.modifier_map[&c.get_key_name()]
                 {
@@ -216,7 +224,7 @@ impl InputSender {
                         mode: StyleCtl::Add,
                         name: "holded-key".to_string(),
                     });
-                } else if matches!(self.hold_mode, HoldMode::Hold | HoldMode::Toggle)
+                } else if matches!(conf_g.hold_mode, HoldMode::Hold | HoldMode::Toggle)
                     && c.is_modifier()
                     && !self.modifier_map[&c.get_key_name()]
                 {
