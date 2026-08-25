@@ -1,5 +1,3 @@
-use std::sync::{Arc, mpsc::Sender};
-
 use crate::{
     config::structs::UiPlace,
     input::structs::InputCommand,
@@ -8,13 +6,12 @@ use crate::{
         structs::{KeyComponentsTable, KeyDef, Keyboard},
     },
 };
-
 use gtk::{
     Application, ApplicationWindow, CssProvider, GestureClick, Grid, gdk, prelude::*,
     style_context_add_provider_for_display,
 };
-
 use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
+use std::sync::mpsc::Sender;
 
 const SCALING_UNIT_COL: i32 = 5;
 const SCALING_UNIT_ROW: i32 = 3;
@@ -26,7 +23,7 @@ enum CLTag {
     Height,
 }
 
-fn calc_key_base_scale(kb: Arc<Keyboard>, global_width: i32) -> i32 {
+fn calc_key_base_scale(kb: &Keyboard, global_width: i32) -> i32 {
     let all_unit_in_line = kb.calc_key_unit_in_line();
     let col_space_sum = COL_SPACE * (all_unit_in_line - 1);
 
@@ -109,7 +106,7 @@ pub fn create_key(
 
 pub fn build_ui(
     app: &Application,
-    keyboard: Arc<Keyboard>,
+    keyboard: &Keyboard,
     kct: &mut KeyComponentsTable,
     tx: Sender<InputCommand>,
     default_monitor: &str,
@@ -146,7 +143,7 @@ pub fn build_ui(
     window.set_namespace(Some(env!("CARGO_PKG_NAME")));
 
     let global_width = setup_monitor(&window, default_monitor).unwrap_or(1200);
-    let key_base_scale = calc_key_base_scale(keyboard.clone(), global_width);
+    let key_base_scale = calc_key_base_scale(keyboard, global_width);
 
     let grid: Grid = builder.object::<Grid>("grid").unwrap();
     grid.set_row_spacing(ROW_SPACE as u32);

@@ -1,2 +1,2 @@
-pub mod load;
+pub mod loader;
 pub mod structs;
