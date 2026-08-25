@@ -8,28 +8,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libgtk-4-dev \
-            libgtk4-layer-shell-dev
+      - name: Install Nix
+        uses: DeterminateSystems/determinate-nix-action@v3
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      - name: Format
-        run: cargo fmt --all -- --check
+      - name: Check formatting
+        run: nix develop --command cargo fmt --all -- --check
 
       - name: Check
-        run: cargo check --all-targets
+        run: nix develop --command cargo check --all-targets
 
       - name: Clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: nix develop --command cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Test
-        run: cargo test --all
+        run: nix develop --command cargo test --all
