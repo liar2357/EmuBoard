@@ -2,7 +2,7 @@ use crate::config::structs::Config;
 use directories::ProjectDirs;
 use std::{fs, io, path::PathBuf};
 
-fn config_path() -> io::Result<PathBuf> {
+pub fn try_get_config_path() -> io::Result<PathBuf> {
     let dirs = ProjectDirs::from("", "", env!("CARGO_PKG_NAME"))
         .ok_or_else(|| io::Error::other("Failed to get config directory"))?;
 
@@ -10,7 +10,7 @@ fn config_path() -> io::Result<PathBuf> {
 }
 
 pub fn load_config() -> Config {
-    let path = match config_path() {
+    let path = match try_get_config_path() {
         Ok(path) => path,
         Err(e) => {
             eprintln!("Config path error: {e}");

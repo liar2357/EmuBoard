@@ -41,7 +41,13 @@ pub fn start_socket_server(
             }
         };
 
+        let is_shutdown = matches!(cmd, SocketCommand::ShutdownApp);
+
         if tx.send(cmd).is_err() {
+            break;
+        }
+
+        if is_shutdown {
             break;
         }
     }
