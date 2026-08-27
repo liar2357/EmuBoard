@@ -1,7 +1,7 @@
 use crate::{
     app::structs::InputState,
+    event::structs::UiEvent,
     input::structs::{InputCommand, InputSender},
-    ui::structs::UiEvent,
 };
 
 use std::sync::{

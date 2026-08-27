@@ -1,7 +1,8 @@
 use crate::{
     app::structs::InputState,
     config::structs::HoldMode,
-    ui::structs::{CustomKey, KeyDef, KeyWrap, StyleCtl, UiEvent},
+    event::structs::UiEvent,
+    ui::structs::{CustomKey, KeyDef, KeyWrap, StyleCtl},
 };
 use evdevil::{
     event::{KeyEvent, KeyState},

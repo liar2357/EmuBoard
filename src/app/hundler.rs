@@ -1,9 +1,13 @@
 use crate::{
     app::structs::{InputState, UiState},
     config::structs::UiPlace,
+    event::{
+        reload::reload_application,
+        structs::{ReloadEvent, UiEvent},
+    },
     input::structs::InputCommand,
     socket::structs::SocketCommand,
-    ui::structs::{StyleCtl, UiEvent},
+    ui::structs::StyleCtl,
 };
 use gtk::{Application, glib::ControlFlow, prelude::*};
 use gtk4_layer_shell::Edge;
@@ -52,15 +56,7 @@ pub fn socket_command_hundler(
                 ui_state.borrow().window_set_anchor(Edge::Bottom);
                 ui_state.borrow_mut().set_ui_place(UiPlace::Lower);
             }
-            SocketCommand::ReloadApp => {
-                ui_state.borrow().window_close();
-
-                let new_input_state = InputState::new();
-                let new_ui_state = UiState::new(app, &new_input_state, tx_ic);
-
-                *ui_state.borrow_mut() = new_ui_state;
-                *input_state.write().unwrap() = new_input_state;
-            }
+            SocketCommand::ReloadApp => reload_application(ui_state, input_state, app, tx_ic),
             SocketCommand::ShutdownApp => app.quit(),
         }
     }
@@ -85,6 +81,30 @@ pub fn ui_event_hundler(ui_state: &Rc<RefCell<UiState>>, rx_ue: &Receiver<UiEven
                 }
             },
         }
+    }
+
+    ControlFlow::Continue
+}
+
+pub fn reload_event_hundler(
+    ui_state: &Rc<RefCell<UiState>>,
+    input_state: &Arc<RwLock<InputState>>,
+    app: &Application,
+    tx_ic: &Sender<InputCommand>,
+    rx_re: &Receiver<ReloadEvent>,
+) -> ControlFlow {
+    let mut is_reload_doing = false;
+
+    while let Ok(eve) = rx_re.try_recv() {
+        match eve {
+            ReloadEvent::ChangeConfigFile => {
+                is_reload_doing = true;
+            }
+        }
+    }
+
+    if is_reload_doing {
+        reload_application(ui_state, input_state, app, tx_ic)
     }
 
     ControlFlow::Continue
