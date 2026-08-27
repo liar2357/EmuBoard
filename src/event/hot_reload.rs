@@ -3,6 +3,8 @@ use notify::{Config as NotifyConfig, EventKind, RecommendedWatcher, RecursiveMod
 use std::sync::mpsc::{Receiver, Sender};
 
 pub fn watch_file_change(tx: Sender<ReloadEvent>, rx: Receiver<()>) -> anyhow::Result<()> {
+    eprintln!("Thread Start: Change");
+
     let config_path = try_get_config_path()?;
     let config_dir = config_path
         .parent()
@@ -35,5 +37,6 @@ pub fn watch_file_change(tx: Sender<ReloadEvent>, rx: Receiver<()>) -> anyhow::R
 
     let _ = rx.recv();
 
+    eprintln!("Thread end: Change");
     Ok(())
 }

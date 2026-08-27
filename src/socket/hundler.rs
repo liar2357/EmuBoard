@@ -12,8 +12,9 @@ pub fn start_socket_server(
     listener: UnixListener,
     tx: Sender<SocketCommand>,
     socket_path: String,
-) -> std::io::Result<()> {
-    println!("Listening: {}", socket_path);
+) -> anyhow::Result<()> {
+    eprintln!("Thread Steat: Socket");
+    eprintln!("Listening: {}", socket_path);
 
     for stream in listener.incoming() {
         let stream = match stream {
@@ -54,5 +55,6 @@ pub fn start_socket_server(
 
     let _ = fs::remove_file(&socket_path);
 
+    eprintln!("Thread End: Socket");
     Ok(())
 }

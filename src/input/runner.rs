@@ -13,8 +13,8 @@ pub fn run_input_thread(
     rx_ic: Receiver<InputCommand>,
     tx_ue: Sender<UiEvent>,
     input_state: Arc<RwLock<InputState>>,
-) {
-    println!("THREAD START");
+) -> anyhow::Result<()> {
+    eprintln!("Thread Start: Input");
 
     let mut sender = InputSender::new(input_state, tx_ue).unwrap();
 
@@ -31,4 +31,7 @@ pub fn run_input_thread(
             }
         }
     }
+
+    eprintln!("Thread end: Input");
+    Ok(())
 }

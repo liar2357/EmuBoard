@@ -16,11 +16,11 @@ use std::{
     cell::RefCell,
     rc::Rc,
     sync::{Arc, RwLock, mpsc},
-    thread,
+    thread::{self, JoinHandle},
     time::Duration,
 };
 
-pub fn run() -> ExitCode {
+pub fn run(join_hundlers: &mut Vec<JoinHandle<anyhow::Result<(), anyhow::Error>>>) -> ExitCode {
     gio::resources_register_include!("emu-board.gresource").expect("Failed to register resources");
 
     let socket_path = format!(
@@ -58,13 +58,15 @@ pub fn run() -> ExitCode {
 
     let input_state_c = Arc::clone(&input_state);
 
-    thread::spawn(move || {
-        run_input_thread(rx_ic, tx_ue, input_state_c);
-    });
+    join_hundlers.push(thread::spawn(move || {
+        run_input_thread(rx_ic, tx_ue, input_state_c)
+    }));
 
-    thread::spawn(move || start_socket_server(listener, tx_sc, spc));
+    join_hundlers.push(thread::spawn(move || {
+        start_socket_server(listener, tx_sc, spc)
+    }));
 
-    thread::spawn(move || watch_file_change(tx_re, rx_ss));
+    join_hundlers.push(thread::spawn(move || watch_file_change(tx_re, rx_ss)));
 
     let tx_ic = RefCell::new(Some(tx_ic));
     let rx_sc = RefCell::new(Some(rx_sc));
