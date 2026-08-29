@@ -37,6 +37,6 @@ pub fn watch_file_change(tx: Sender<ReloadEvent>, rx: Receiver<()>) -> anyhow::R
 
     let _ = rx.recv();
 
-    eprintln!("Thread end: Change");
+    eprintln!("Thread End: Change");
     Ok(())
 }

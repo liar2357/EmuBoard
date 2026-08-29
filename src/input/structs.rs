@@ -17,6 +17,7 @@ use std::{
 pub enum InputCommand {
     KeyDown((usize, usize)),
     KeyUp((usize, usize)),
+    Shutdown,
 }
 
 pub struct InputSender {

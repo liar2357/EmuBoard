@@ -34,7 +34,10 @@ pub fn start_socket_server(
             continue;
         }
 
-        let cmd = match SocketCommand::from_str(line.trim()) {
+        let trimed = line.trim();
+        eprintln!("Socket Recieved: {}", trimed);
+
+        let cmd = match SocketCommand::from_str(trimed) {
             Ok(v) => v,
             Err(_) => {
                 eprintln!("Unknown command: {}", line.trim());

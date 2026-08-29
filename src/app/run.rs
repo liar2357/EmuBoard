@@ -1,6 +1,6 @@
 use crate::{
     app::{
-        hundler::{reload_event_hundler, socket_command_hundler, ui_event_hundler},
+        handler::{reload_event_hundler, socket_command_hundler, ui_event_hundler},
         structs::{InputState, UiState},
         utils::bind_socket,
     },
@@ -9,7 +9,7 @@ use crate::{
         structs::{ReloadEvent, UiEvent},
     },
     input::{runner::run_input_thread, structs::InputCommand},
-    socket::{hundler::start_socket_server, structs::SocketCommand},
+    socket::{handler::start_socket_server, structs::SocketCommand},
 };
 use gtk::{Application, gio, glib::ExitCode, prelude::*};
 use std::{
@@ -73,6 +73,8 @@ pub fn run(join_hundlers: &mut Vec<JoinHandle<anyhow::Result<(), anyhow::Error>>
     let rx_ue = RefCell::new(Some(rx_ue));
     let rx_re = RefCell::new(Some(rx_re));
 
+    let tx_ic_c = RefCell::clone(&tx_ic);
+
     app.connect_activate(move |app| {
         let tx_ic = tx_ic.borrow_mut().take().expect("activate called twice");
         let rx_sc = rx_sc.borrow_mut().take().expect("activate called twice");
@@ -109,6 +111,8 @@ pub fn run(join_hundlers: &mut Vec<JoinHandle<anyhow::Result<(), anyhow::Error>>
     });
 
     app.connect_shutdown(move |_| {
+        let tx_ic = tx_ic_c.borrow_mut().take().expect("activate called twice");
+        let _ = tx_ic.send(InputCommand::Shutdown);
         let _ = tx_ss.send(());
         let _ = std::fs::remove_file(&socket_path);
     });

@@ -29,9 +29,11 @@ pub fn run_input_thread(
                 println!("UP {:?}", key);
                 sender.key_up(key).unwrap();
             }
+
+            InputCommand::Shutdown => break,
         }
     }
 
-    eprintln!("Thread end: Input");
+    eprintln!("Thread End: Input");
     Ok(())
 }
