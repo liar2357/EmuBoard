@@ -1,6 +1,7 @@
 use crate::{
     config::structs::UiPlace,
     input::structs::InputCommand,
+    socket::{sender::send_socket_command, structs::SocketCommand},
     ui::{
         monitor::setup_monitor,
         structs::{KeyComponentsTable, KeyDef, Keyboard},
@@ -190,8 +191,15 @@ pub fn build_ui(
         r_num += rn_temp;
     }
 
-    window.present();
-    window.set_visible(*default_ui_view);
+    window.connect_close_request(move |_| {
+        eprintln!("Request Shutdown from Window Close");
+        let _ = send_socket_command(SocketCommand::ShutdownApp.to_string());
 
+        gtk::glib::Propagation::Stop
+    });
+
+    window.present();
+
+    window.set_visible(*default_ui_view);
     window
 }

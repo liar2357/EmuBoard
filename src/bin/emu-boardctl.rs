@@ -1,5 +1,5 @@
-use emu_board::socket::structs::SocketCommand;
-use std::{env, io::Write, os::unix::net::UnixStream};
+use emu_board::socket::{sender::send_socket_command, structs::SocketCommand};
+use std::env;
 
 fn main() -> std::io::Result<()> {
     let Some(cmd) = env::args().nth(1) else {
@@ -9,14 +9,6 @@ fn main() -> std::io::Result<()> {
         std::process::exit(1);
     };
 
-    let socket = format!(
-        "{}/{}.sock",
-        std::env::var("XDG_RUNTIME_DIR").unwrap(),
-        env!("CARGO_PKG_NAME")
-    );
-
-    let mut stream = UnixStream::connect(socket)?;
-    writeln!(stream, "{cmd}")?;
-
+    send_socket_command(cmd)?;
     Ok(())
 }
