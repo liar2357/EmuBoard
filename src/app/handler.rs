@@ -2,6 +2,7 @@ use crate::{
     app::structs::{InputState, UiState},
     config::structs::UiPlace,
     event::{
+        notify::send_notify,
         reload::reload_application,
         structs::{ReloadEvent, UiEvent},
     },
@@ -56,8 +57,14 @@ pub fn socket_command_hundler(
                 ui_state.borrow().window_set_anchor(Edge::Bottom);
                 ui_state.borrow_mut().set_ui_place(UiPlace::Lower);
             }
-            SocketCommand::ReloadApp => reload_application(ui_state, input_state, app, tx_ic),
-            SocketCommand::ShutdownApp => app.quit(),
+            SocketCommand::ReloadApp => {
+                reload_application(ui_state, input_state, app, tx_ic);
+                send_notify("Application Reloaded");
+            }
+            SocketCommand::ShutdownApp => {
+                send_notify("Application Shutdown");
+                app.quit();
+            }
         }
     }
 

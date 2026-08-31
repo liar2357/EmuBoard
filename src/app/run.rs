@@ -6,6 +6,7 @@ use crate::{
     },
     event::{
         hot_reload::watch_file_change,
+        notify::send_notify,
         structs::{ReloadEvent, UiEvent},
     },
     input::{runner::run_input_thread, structs::InputCommand},
@@ -116,6 +117,8 @@ pub fn run(join_hundlers: &mut Vec<JoinHandle<anyhow::Result<(), anyhow::Error>>
         let _ = tx_ss.send(());
         let _ = std::fs::remove_file(&socket_path);
     });
+
+    send_notify("Application Booted");
 
     app.run()
 }

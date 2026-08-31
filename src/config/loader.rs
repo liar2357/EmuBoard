@@ -1,4 +1,4 @@
-use crate::config::structs::Config;
+use crate::{config::structs::Config, event::notify::send_notify};
 use directories::ProjectDirs;
 use std::{fs, io, path::PathBuf};
 
@@ -19,10 +19,19 @@ pub fn load_config() -> Config {
     };
 
     match fs::read_to_string(&path) {
-        Ok(content) => toml::from_str(&content).unwrap_or_else(|e| {
-            eprintln!("Config parse error: {e}");
+        Ok(content) => match toml::from_str(&content) {
+            Ok(v) => {
+                send_notify("Config Load Successfull");
+                v
+            }
+            Err(e) => {
+                send_notify(format!("Config parse error\n{e}").as_str());
+                Config::default()
+            }
+        },
+        Err(e) => {
+            send_notify(format!("Config parse error\n{e}").as_str());
             Config::default()
-        }),
-        Err(_) => Config::default(),
+        }
     }
 }
