@@ -12,8 +12,9 @@ pub fn start_socket_server(
     listener: UnixListener,
     tx: Sender<SocketCommand>,
     socket_path: String,
-) -> std::io::Result<()> {
-    println!("Listening: {}", socket_path);
+) -> anyhow::Result<()> {
+    eprintln!("Thread Steat: Socket");
+    eprintln!("Listening: {}", socket_path);
 
     for stream in listener.incoming() {
         let stream = match stream {
@@ -33,7 +34,10 @@ pub fn start_socket_server(
             continue;
         }
 
-        let cmd = match SocketCommand::from_str(line.trim()) {
+        let trimed = line.trim();
+        eprintln!("Socket Recieved: {}", trimed);
+
+        let cmd = match SocketCommand::from_str(trimed) {
             Ok(v) => v,
             Err(_) => {
                 eprintln!("Unknown command: {}", line.trim());
@@ -41,12 +45,19 @@ pub fn start_socket_server(
             }
         };
 
+        let is_shutdown = matches!(cmd, SocketCommand::ShutdownApp);
+
         if tx.send(cmd).is_err() {
+            break;
+        }
+
+        if is_shutdown {
             break;
         }
     }
 
     let _ = fs::remove_file(&socket_path);
 
+    eprintln!("Thread End: Socket");
     Ok(())
 }

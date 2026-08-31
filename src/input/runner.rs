@@ -1,23 +1,22 @@
 use crate::{
-    config::structs::HoldMode,
+    app::structs::InputState,
+    event::structs::UiEvent,
     input::structs::{InputCommand, InputSender},
-    ui::structs::{Keyboard, UiEvent},
 };
 
 use std::sync::{
-    Arc,
+    Arc, RwLock,
     mpsc::{Receiver, Sender},
 };
 
 pub fn run_input_thread(
     rx_ic: Receiver<InputCommand>,
     tx_ue: Sender<UiEvent>,
-    kb: Arc<Keyboard>,
-    hm: HoldMode,
-) {
-    println!("THREAD START");
+    input_state: Arc<RwLock<InputState>>,
+) -> anyhow::Result<()> {
+    eprintln!("Thread Start: Input");
 
-    let mut sender = InputSender::new(kb, tx_ue, hm).unwrap();
+    let mut sender = InputSender::new(input_state, tx_ue).unwrap();
 
     while let Ok(cmd) = rx_ic.recv() {
         match cmd {
@@ -30,6 +29,11 @@ pub fn run_input_thread(
                 println!("UP {:?}", key);
                 sender.key_up(key).unwrap();
             }
+
+            InputCommand::Shutdown => break,
         }
     }
+
+    eprintln!("Thread End: Input");
+    Ok(())
 }
