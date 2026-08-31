@@ -21,7 +21,7 @@ pub fn load_config() -> Config {
     match fs::read_to_string(&path) {
         Ok(content) => match toml::from_str(&content) {
             Ok(v) => {
-                send_notify("New Config Loaded");
+                send_notify("Config Load Successfull");
                 v
             }
             Err(e) => {
