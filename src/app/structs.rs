@@ -106,6 +106,14 @@ impl InputState {
     pub fn get_conf_ref(&self) -> &Config {
         &self.config
     }
+
+    pub fn set_monitor_name(&mut self, new_name: &str) {
+        self.config.set_monitor_name(new_name);
+    }
+
+    pub fn get_monitor_name(&self) -> String {
+        self.config.get_monitor_name()
+    }
 }
 impl Default for InputState {
     fn default() -> Self {

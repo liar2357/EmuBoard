@@ -104,7 +104,7 @@ pub fn reload_event_hundler(
 
     while let Ok(eve) = rx_re.try_recv() {
         match eve {
-            ReloadEvent::ChangeConfigFile => {
+            ReloadEvent::ChangeConfigFile | ReloadEvent::ChangeMonitorWidth => {
                 is_reload_doing = true;
             }
         }

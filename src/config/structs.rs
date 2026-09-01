@@ -30,6 +30,15 @@ pub struct Config {
     #[serde(default = "default_default_ui_place")]
     pub default_ui_place: UiPlace,
 }
+impl Config {
+    pub fn set_monitor_name(&mut self, new_name: &str) {
+        self.default_monitor = new_name.to_string();
+    }
+
+    pub fn get_monitor_name(&self) -> String {
+        self.default_monitor.clone()
+    }
+}
 
 impl Default for Config {
     fn default() -> Self {

@@ -2,6 +2,7 @@ use crate::ui::structs::StyleCtl;
 
 pub enum ReloadEvent {
     ChangeConfigFile,
+    ChangeMonitorWidth,
 }
 
 pub enum UiEvent {
