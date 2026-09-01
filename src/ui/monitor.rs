@@ -2,7 +2,7 @@ use gtk::prelude::*;
 use gtk::{ApplicationWindow, gdk};
 use gtk4_layer_shell::LayerShell;
 
-fn find_monitor_by_name(name: &str) -> Option<gdk::Monitor> {
+pub fn find_monitor_by_name(name: &str) -> Option<gdk::Monitor> {
     let display = gdk::Display::default()?;
     let monitors = display.monitors();
 

@@ -5,14 +5,18 @@ use crate::{
         utils::bind_socket,
     },
     event::{
-        hot_reload::watch_file_change,
+        hot_reload::{monitor_width, watch_file_change, watch_monitor_change},
         notify::send_notify,
         structs::{ReloadEvent, UiEvent},
     },
     input::{runner::run_input_thread, structs::InputCommand},
     socket::{handler::start_socket_server, structs::SocketCommand},
 };
-use gtk::{Application, gio, glib::ExitCode, prelude::*};
+use gtk::{
+    Application, gio,
+    glib::{ExitCode, timeout_add_local},
+    prelude::*,
+};
 use std::{
     cell::RefCell,
     rc::Rc,
@@ -67,12 +71,14 @@ pub fn run(join_hundlers: &mut Vec<JoinHandle<anyhow::Result<(), anyhow::Error>>
         start_socket_server(listener, tx_sc, spc)
     }));
 
-    join_hundlers.push(thread::spawn(move || watch_file_change(tx_re, rx_ss)));
+    let tx_re_c = tx_re.clone();
+    join_hundlers.push(thread::spawn(move || watch_file_change(tx_re_c, rx_ss)));
 
     let tx_ic = RefCell::new(Some(tx_ic));
     let rx_sc = RefCell::new(Some(rx_sc));
     let rx_ue = RefCell::new(Some(rx_ue));
     let rx_re = RefCell::new(Some(rx_re));
+    let tx_re = RefCell::new(Some(tx_re));
 
     let tx_ic_c = RefCell::clone(&tx_ic);
 
@@ -81,6 +87,7 @@ pub fn run(join_hundlers: &mut Vec<JoinHandle<anyhow::Result<(), anyhow::Error>>
         let rx_sc = rx_sc.borrow_mut().take().expect("activate called twice");
         let rx_ue = rx_ue.borrow_mut().take().expect("activate called twice");
         let rx_re = rx_re.borrow_mut().take().expect("activate called twice");
+        let tx_re = tx_re.borrow_mut().take().expect("activate called twice");
 
         let is_g = input_state.read().unwrap();
         let ui_state = UiState::new(app, &is_g, &tx_ic);
@@ -93,21 +100,28 @@ pub fn run(join_hundlers: &mut Vec<JoinHandle<anyhow::Result<(), anyhow::Error>>
 
         let tx_ic_c = tx_ic.clone();
 
-        gtk::glib::timeout_add_local(Duration::from_millis(16), move || {
+        timeout_add_local(Duration::from_millis(16), move || {
             socket_command_hundler(&ui_state_c, &input_state_c, &app_c, &rx_sc, &tx_ic_c)
         });
 
         let ui_state_c = Rc::clone(&ui_state);
 
-        gtk::glib::timeout_add_local(Duration::from_millis(16), move || {
+        timeout_add_local(Duration::from_millis(16), move || {
             ui_event_hundler(&ui_state_c, &rx_ue)
         });
 
         let app_c = app.clone();
         let input_state_c = Arc::clone(&input_state);
 
-        gtk::glib::timeout_add_local(Duration::from_millis(100), move || {
+        timeout_add_local(Duration::from_millis(100), move || {
             reload_event_hundler(&ui_state, &input_state_c, &app_c, &tx_ic, &rx_re)
+        });
+
+        let monitor_name = input_state.read().unwrap().get_monitor_name();
+        let mut previous_width = monitor_width(&monitor_name);
+
+        timeout_add_local(Duration::from_millis(100), move || {
+            watch_monitor_change(&monitor_name, &tx_re, &mut previous_width)
         });
     });
 
