@@ -1,14 +1,21 @@
 use crate::{
     config::loader::try_get_config_path,
-    event::{notify::send_notify, structs::ReloadEvent},
+    event::{log::Logger, notify::send_notify, structs::ReloadEvent},
     ui::monitor::find_monitor_by_name,
 };
 use gtk::{glib::ControlFlow, prelude::*};
 use notify::{Config as NotifyConfig, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::{
+    Arc,
+    mpsc::{Receiver, Sender},
+};
 
-pub fn watch_file_change(tx: Sender<ReloadEvent>, rx: Receiver<()>) -> anyhow::Result<()> {
-    eprintln!("Thread Start: Change");
+pub fn watch_file_change(
+    tx: Sender<ReloadEvent>,
+    rx: Receiver<()>,
+    logger: Arc<Logger>,
+) -> anyhow::Result<()> {
+    logger.trace("Thread Start: Change");
 
     let config_path = try_get_config_path()?;
     let config_dir = config_path
@@ -42,7 +49,7 @@ pub fn watch_file_change(tx: Sender<ReloadEvent>, rx: Receiver<()>) -> anyhow::R
 
     let _ = rx.recv();
 
-    eprintln!("Thread End: Change");
+    logger.trace("Thread End: Change");
     Ok(())
 }
 
@@ -55,6 +62,7 @@ pub fn watch_monitor_change(
     monitor_name: &str,
     tx: &Sender<ReloadEvent>,
     previous_width: &mut Option<i32>,
+    logger: &Arc<Logger>,
 ) -> ControlFlow {
     let current_width = monitor_width(monitor_name);
 
@@ -62,7 +70,10 @@ pub fn watch_monitor_change(
         let old_width = previous_width.unwrap_or(0);
         let new_width = current_width.unwrap_or(0);
 
-        send_notify(format!("monitor width changed: {} -> {}", old_width, new_width).as_str());
+        let log = format!("monitor width changed: {} -> {}", old_width, new_width);
+
+        logger.info(log.clone());
+        send_notify(&log);
 
         *previous_width = current_width;
 

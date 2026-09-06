@@ -6,6 +6,7 @@ use crate::{
     },
     event::{
         hot_reload::{monitor_width, watch_file_change, watch_monitor_change},
+        log::Logger,
         notify::send_notify,
         structs::{ReloadEvent, UiEvent},
     },
@@ -19,14 +20,24 @@ use gtk::{
 };
 use std::{
     cell::RefCell,
+    path::PathBuf,
     rc::Rc,
     sync::{Arc, RwLock, mpsc},
     thread::{self, JoinHandle},
     time::Duration,
 };
 
-pub fn run(join_hundlers: &mut Vec<JoinHandle<anyhow::Result<(), anyhow::Error>>>) -> ExitCode {
-    gio::resources_register_include!("emu-board.gresource").expect("Failed to register resources");
+pub fn run(
+    custom_config_path: Option<PathBuf>,
+    join_hundlers: &mut Vec<JoinHandle<anyhow::Result<(), anyhow::Error>>>,
+    logger: Arc<Logger>,
+) -> ExitCode {
+    if let Err(e) = gio::resources_register_include!("emu-board.gresource") {
+        logger.error(format!("Failed to register resources\n{}", e));
+        return ExitCode::FAILURE;
+    }
+
+    let custom_config_path = Rc::new(custom_config_path);
 
     let socket_path = format!(
         "{}/{}.sock",
@@ -37,11 +48,12 @@ pub fn run(join_hundlers: &mut Vec<JoinHandle<anyhow::Result<(), anyhow::Error>>
     let listener = match bind_socket(&socket_path) {
         Ok(listener) => listener,
         Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
-            println!("emu-board is already running.");
-            return ExitCode::SUCCESS;
+            send_notify("emu-board is already running.");
+            logger.error("emu-board is already running.");
+            return ExitCode::FAILURE;
         }
         Err(e) => {
-            eprintln!("{e}");
+            logger.error(e);
             return ExitCode::FAILURE;
         }
     };
@@ -58,21 +70,26 @@ pub fn run(join_hundlers: &mut Vec<JoinHandle<anyhow::Result<(), anyhow::Error>>
 
     let spc = socket_path.clone();
 
-    let input_state = InputState::new();
+    let custom_config_path_c = Rc::clone(&custom_config_path);
+    let input_state = InputState::new(&custom_config_path_c, Arc::clone(&logger));
     let input_state = Arc::new(RwLock::new(input_state));
 
     let input_state_c = Arc::clone(&input_state);
-
+    let logger_c = Arc::clone(&logger);
     join_hundlers.push(thread::spawn(move || {
-        run_input_thread(rx_ic, tx_ue, input_state_c)
+        run_input_thread(rx_ic, tx_ue, input_state_c, logger_c)
     }));
 
+    let logger_c = Arc::clone(&logger);
     join_hundlers.push(thread::spawn(move || {
-        start_socket_server(listener, tx_sc, spc)
+        start_socket_server(listener, tx_sc, spc, logger_c)
     }));
 
     let tx_re_c = tx_re.clone();
-    join_hundlers.push(thread::spawn(move || watch_file_change(tx_re_c, rx_ss)));
+    let logger_c = Arc::clone(&logger);
+    join_hundlers.push(thread::spawn(move || {
+        watch_file_change(tx_re_c, rx_ss, logger_c)
+    }));
 
     let tx_ic = RefCell::new(Some(tx_ic));
     let rx_sc = RefCell::new(Some(rx_sc));
@@ -82,15 +99,19 @@ pub fn run(join_hundlers: &mut Vec<JoinHandle<anyhow::Result<(), anyhow::Error>>
 
     let tx_ic_c = RefCell::clone(&tx_ic);
 
+    let logger_c = Arc::clone(&logger);
+
     app.connect_activate(move |app| {
-        let tx_ic = tx_ic.borrow_mut().take().expect("activate called twice");
-        let rx_sc = rx_sc.borrow_mut().take().expect("activate called twice");
-        let rx_ue = rx_ue.borrow_mut().take().expect("activate called twice");
-        let rx_re = rx_re.borrow_mut().take().expect("activate called twice");
-        let tx_re = tx_re.borrow_mut().take().expect("activate called twice");
+        let (tx_ic, rx_sc, rx_ue, rx_re, tx_re) = (
+            tx_ic.borrow_mut().take().expect("activate called twice"),
+            rx_sc.borrow_mut().take().expect("activate called twice"),
+            rx_ue.borrow_mut().take().expect("activate called twice"),
+            rx_re.borrow_mut().take().expect("activate called twice"),
+            tx_re.borrow_mut().take().expect("activate called twice"),
+        );
 
         let is_g = input_state.read().unwrap();
-        let ui_state = UiState::new(app, &is_g, &tx_ic);
+        let ui_state = UiState::new(app, &is_g, &tx_ic, Arc::clone(&logger_c));
         let ui_state = Rc::new(RefCell::new(ui_state));
 
         let app_c = app.clone();
@@ -100,28 +121,47 @@ pub fn run(join_hundlers: &mut Vec<JoinHandle<anyhow::Result<(), anyhow::Error>>
 
         let tx_ic_c = tx_ic.clone();
 
+        let logger_c1 = Arc::clone(&logger_c);
+        let custom_config_path_c = Rc::clone(&custom_config_path);
         timeout_add_local(Duration::from_millis(16), move || {
-            socket_command_hundler(&ui_state_c, &input_state_c, &app_c, &rx_sc, &tx_ic_c)
+            socket_command_hundler(
+                &ui_state_c,
+                &input_state_c,
+                &app_c,
+                &rx_sc,
+                &tx_ic_c,
+                &logger_c1,
+                &custom_config_path_c,
+            )
         });
 
         let ui_state_c = Rc::clone(&ui_state);
-
         timeout_add_local(Duration::from_millis(16), move || {
             ui_event_hundler(&ui_state_c, &rx_ue)
         });
 
         let app_c = app.clone();
         let input_state_c = Arc::clone(&input_state);
-
+        let logger_c1 = Arc::clone(&logger_c);
+        let custom_config_path_c = Rc::clone(&custom_config_path);
         timeout_add_local(Duration::from_millis(100), move || {
-            reload_event_hundler(&ui_state, &input_state_c, &app_c, &tx_ic, &rx_re)
+            reload_event_hundler(
+                &ui_state,
+                &input_state_c,
+                &app_c,
+                &tx_ic,
+                &rx_re,
+                &logger_c1,
+                &custom_config_path_c,
+            )
         });
 
         let monitor_name = input_state.read().unwrap().get_monitor_name();
         let mut previous_width = monitor_width(&monitor_name);
 
+        let logger_c1 = Arc::clone(&logger_c);
         timeout_add_local(Duration::from_millis(100), move || {
-            watch_monitor_change(&monitor_name, &tx_re, &mut previous_width)
+            watch_monitor_change(&monitor_name, &tx_re, &mut previous_width, &logger_c1)
         });
     });
 
@@ -133,6 +173,12 @@ pub fn run(join_hundlers: &mut Vec<JoinHandle<anyhow::Result<(), anyhow::Error>>
     });
 
     send_notify("Application Booted");
+    logger.info("Application Booted");
 
-    app.run()
+    let argv = std::env::args()
+        .next()
+        .map(|arg| vec![arg])
+        .unwrap_or_else(|| vec!["emu-board".to_string()]);
+
+    app.run_with_args(&argv)
 }

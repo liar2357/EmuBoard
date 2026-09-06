@@ -3,24 +3,25 @@ use std::{
     io::{BufRead, BufReader},
     os::unix::net::UnixListener,
     str::FromStr,
-    sync::mpsc::Sender,
+    sync::{Arc, mpsc::Sender},
 };
 
-use crate::socket::structs::SocketCommand;
+use crate::{event::log::Logger, socket::structs::SocketCommand};
 
 pub fn start_socket_server(
     listener: UnixListener,
     tx: Sender<SocketCommand>,
     socket_path: String,
+    logger: Arc<Logger>,
 ) -> anyhow::Result<()> {
-    eprintln!("Thread Steat: Socket");
-    eprintln!("Listening: {}", socket_path);
+    logger.trace("Thread Steat: Socket");
+    logger.info(format!("Listening: {}", socket_path));
 
     for stream in listener.incoming() {
         let stream = match stream {
             Ok(s) => s,
             Err(e) => {
-                eprintln!("Accept error: {e}");
+                logger.error(format!("Accept error: {e}"));
                 continue;
             }
         };
@@ -30,17 +31,17 @@ pub fn start_socket_server(
         let mut line = String::new();
 
         if let Err(e) = reader.read_line(&mut line) {
-            eprintln!("Read error: {e}");
+            logger.error(format!("Read error: {e}"));
             continue;
         }
 
         let trimed = line.trim();
-        eprintln!("Socket Recieved: {}", trimed);
+        logger.info(format!("Socket Recieved: {}", trimed));
 
         let cmd = match SocketCommand::from_str(trimed) {
             Ok(v) => v,
             Err(_) => {
-                eprintln!("Unknown command: {}", line.trim());
+                logger.error(format!("Unknown command: {}", line.trim()));
                 continue;
             }
         };
@@ -58,6 +59,6 @@ pub fn start_socket_server(
 
     let _ = fs::remove_file(&socket_path);
 
-    eprintln!("Thread End: Socket");
+    logger.trace("Thread End: Socket");
     Ok(())
 }
