@@ -1,6 +1,6 @@
 use crate::{
     app::structs::InputState,
-    event::structs::UiEvent,
+    event::{log::Logger, structs::UiEvent},
     input::structs::{InputCommand, InputSender},
 };
 
@@ -13,20 +13,21 @@ pub fn run_input_thread(
     rx_ic: Receiver<InputCommand>,
     tx_ue: Sender<UiEvent>,
     input_state: Arc<RwLock<InputState>>,
+    logger: Arc<Logger>,
 ) -> anyhow::Result<()> {
-    eprintln!("Thread Start: Input");
+    logger.trace("Thread Start: Input");
 
-    let mut sender = InputSender::new(input_state, tx_ue).unwrap();
+    let mut sender = InputSender::new(input_state, tx_ue, Arc::clone(&logger)).unwrap();
 
     while let Ok(cmd) = rx_ic.recv() {
         match cmd {
             InputCommand::KeyDown(key) => {
-                println!("DOWN {:?}", key);
+                logger.trace(format!("DOWN: {:?}", key));
                 sender.key_down(key).unwrap();
             }
 
             InputCommand::KeyUp(key) => {
-                println!("UP {:?}", key);
+                logger.trace(format!("UP: {:?}", key));
                 sender.key_up(key).unwrap();
             }
 
@@ -34,6 +35,6 @@ pub fn run_input_thread(
         }
     }
 
-    eprintln!("Thread End: Input");
+    logger.trace("Thread End: Input");
     Ok(())
 }

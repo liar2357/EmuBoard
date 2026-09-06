@@ -2,6 +2,7 @@ use crate::{
     app::structs::{InputState, UiState},
     config::structs::UiPlace,
     event::{
+        log::Logger,
         notify::send_notify,
         reload::reload_application,
         structs::{ReloadEvent, UiEvent},
@@ -14,6 +15,7 @@ use gtk::{Application, glib::ControlFlow, prelude::*};
 use gtk4_layer_shell::Edge;
 use std::{
     cell::RefCell,
+    path::PathBuf,
     rc::Rc,
     sync::{
         Arc, RwLock,
@@ -27,6 +29,8 @@ pub fn socket_command_hundler(
     app: &Application,
     rx_sc: &Receiver<SocketCommand>,
     tx_ic: &Sender<InputCommand>,
+    logger: &Arc<Logger>,
+    custom_path: &Option<PathBuf>,
 ) -> ControlFlow {
     while let Ok(cmd) = rx_sc.try_recv() {
         match cmd {
@@ -58,10 +62,19 @@ pub fn socket_command_hundler(
                 ui_state.borrow_mut().set_ui_place(UiPlace::Lower);
             }
             SocketCommand::ReloadApp => {
-                reload_application(ui_state, input_state, app, tx_ic);
+                reload_application(
+                    custom_path,
+                    ui_state,
+                    input_state,
+                    app,
+                    tx_ic,
+                    Arc::clone(logger),
+                );
+                logger.trace("Application Reloaded");
                 send_notify("Application Reloaded");
             }
             SocketCommand::ShutdownApp => {
+                logger.trace("Application Shutdown");
                 send_notify("Application Shutdown");
                 app.quit();
             }
@@ -99,6 +112,8 @@ pub fn reload_event_hundler(
     app: &Application,
     tx_ic: &Sender<InputCommand>,
     rx_re: &Receiver<ReloadEvent>,
+    logger: &Arc<Logger>,
+    custom_path: &Option<PathBuf>,
 ) -> ControlFlow {
     let mut is_reload_doing = false;
 
@@ -111,7 +126,14 @@ pub fn reload_event_hundler(
     }
 
     if is_reload_doing {
-        reload_application(ui_state, input_state, app, tx_ic)
+        reload_application(
+            custom_path,
+            ui_state,
+            input_state,
+            app,
+            tx_ic,
+            Arc::clone(logger),
+        )
     }
 
     ControlFlow::Continue
