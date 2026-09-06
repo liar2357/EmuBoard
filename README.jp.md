@@ -137,6 +137,32 @@ default_ui_view=false
 default_ui_place="Lower"
 ```
 
+### コマンドラインオプション
+
+```bash
+# バージョン情報を表示
+emu-board -V
+emu-board --version
+
+# オプション等の使い方を表示
+emu-board -h
+emu-board --help
+
+# 任意のファイルパスをコンフィグとして指定
+emu-board -c <path>
+emu-board --config <path>
+
+# ログレベルを指定
+emu-board        # (標準)error以上
+emu-board -v     # warn以上
+emu-board -vv    # info以上
+emu-board -vvv   # trace以上
+```
+
+### ホットリロード
+
+設定ファイルおよび表示モニターの変更により自動的にUIを再生成
+
 ## emu-boardctl
 
 ### コマンド一覧
@@ -162,6 +188,18 @@ emu-boardctl upper_ui_place
 
 # アプリを終了
 emu-boardctl shutdown_app
+```
+
+### コマンドラインオプション
+
+```bash
+# バージョン情報を表示
+emu-board -V
+emu-board --version
+
+# 使い方を表示
+emu-board -h
+emu-board --help
 ```
 
 # ライセンス

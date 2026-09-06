@@ -16,8 +16,8 @@ pub enum SocketCommand {
 }
 
 impl SocketCommand {
-    pub fn print_all() {
-        let arr = vec![
+    pub fn get_all_comands_string() -> String {
+        [
             Self::ToggleUiView,
             Self::ShowUiView,
             Self::HideUiView,
@@ -26,14 +26,18 @@ impl SocketCommand {
             Self::LowerUiPlace,
             Self::ReloadApp,
             Self::ShutdownApp,
-        ];
+        ]
+        .iter()
+        .map(|v| v.to_string())
+        .collect::<Vec<String>>()
+        .join("\n")
+        .to_string()
+    }
 
+    pub fn print_all() {
         eprintln!("Available Commands");
-        eprintln!("--------------------");
-
-        for a in arr {
-            eprintln!("{}", a);
-        }
+        eprintln!("------------------");
+        eprintln!("{}", Self::get_all_comands_string());
     }
 }
 

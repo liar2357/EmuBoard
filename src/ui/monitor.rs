@@ -1,8 +1,12 @@
+use std::sync::Arc;
+
 use gtk::prelude::*;
 use gtk::{ApplicationWindow, gdk};
 use gtk4_layer_shell::LayerShell;
 
-fn find_monitor_by_name(name: &str) -> Option<gdk::Monitor> {
+use crate::event::log::Logger;
+
+pub fn find_monitor_by_name(name: &str) -> Option<gdk::Monitor> {
     let display = gdk::Display::default()?;
     let monitors = display.monitors();
 
@@ -23,17 +27,21 @@ fn find_monitor_by_name(name: &str) -> Option<gdk::Monitor> {
     monitors.item(0)?.downcast::<gdk::Monitor>().ok()
 }
 
-pub fn setup_monitor(window: &ApplicationWindow, monitor_name: &str) -> Option<i32> {
+pub fn setup_monitor(
+    window: &ApplicationWindow,
+    monitor_name: &str,
+    logger: Arc<Logger>,
+) -> Option<i32> {
     let monitor = find_monitor_by_name(monitor_name)?;
 
     let width = monitor.geometry().width();
 
-    println!(
+    logger.info(format!(
         "monitor={} width={} height={}",
         monitor_name,
         width,
         monitor.geometry().height()
-    );
+    ));
 
     window.set_monitor(Some(&monitor));
 

@@ -1,5 +1,8 @@
+#![allow(clippy::too_many_arguments)]
+
 use crate::{
     config::structs::UiPlace,
+    event::log::Logger,
     input::structs::InputCommand,
     ui::{
         monitor::setup_monitor,
@@ -11,7 +14,7 @@ use gtk::{
     style_context_add_provider_for_display,
 };
 use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
-use std::sync::mpsc::Sender;
+use std::sync::{Arc, mpsc::Sender};
 
 const SCALING_UNIT_COL: i32 = 5;
 const SCALING_UNIT_ROW: i32 = 3;
@@ -23,11 +26,16 @@ enum CLTag {
     Height,
 }
 
-fn calc_key_base_scale(kb: &Keyboard, global_width: i32) -> i32 {
+fn calc_key_base_scale(kb: &Keyboard, global_width: i32, logger: Arc<Logger>) -> i32 {
     let all_unit_in_line = kb.calc_key_unit_in_line();
     let col_space_sum = COL_SPACE * (all_unit_in_line - 1);
+    let key_base_scale = (global_width - col_space_sum) / all_unit_in_line / SCALING_UNIT_COL;
 
-    dbg!(((dbg!(global_width) - col_space_sum) / dbg!(all_unit_in_line) / SCALING_UNIT_COL) as i32)
+    logger.info(format!("global_width = {global_width}"));
+    logger.info(format!("global_width = {all_unit_in_line}"));
+    logger.info(format!("key_base_scale = {key_base_scale}"));
+
+    key_base_scale
 }
 
 fn key_scaling(base: i32, scale: i32) -> i32 {
@@ -112,10 +120,21 @@ pub fn build_ui(
     default_monitor: &str,
     default_ui_view: &bool,
     default_ui_place: &UiPlace,
+    logger: Arc<Logger>,
 ) -> ApplicationWindow {
-    eprintln!("WAYLAND_DISPLAY={:?}", std::env::var("WAYLAND_DISPLAY"));
-    eprintln!("XDG_SESSION_TYPE={:?}", std::env::var("XDG_SESSION_TYPE"));
-    eprintln!("LayerShell supported={}", gtk4_layer_shell::is_supported());
+    logger.info(format!(
+        "WAYLAND_DISPLAY={:?}",
+        std::env::var("WAYLAND_DISPLAY")
+    ));
+    logger.info(format!(
+        "XDG_SESSION_TYPE={:?}",
+        std::env::var("XDG_SESSION_TYPE")
+    ));
+    if gtk4_layer_shell::is_supported() {
+        logger.info("LayerShell supported=true");
+    } else {
+        logger.warn("LayerShell supported=false");
+    }
 
     load_css();
 
@@ -142,8 +161,8 @@ pub fn build_ui(
 
     window.set_namespace(Some(env!("CARGO_PKG_NAME")));
 
-    let global_width = setup_monitor(&window, default_monitor).unwrap_or(1200);
-    let key_base_scale = calc_key_base_scale(keyboard, global_width);
+    let global_width = setup_monitor(&window, default_monitor, Arc::clone(&logger)).unwrap_or(1200);
+    let key_base_scale = calc_key_base_scale(keyboard, global_width, Arc::clone(&logger));
 
     let grid: Grid = builder.object::<Grid>("grid").unwrap();
     grid.set_row_spacing(ROW_SPACE as u32);

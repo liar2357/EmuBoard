@@ -1,8 +1,23 @@
-use emu_board::socket::{sender::send_socket_command, structs::SocketCommand};
-use std::env;
+use clap::{CommandFactory, FromArgMatches};
+use emu_board::{
+    event::comandline::Args4Ctl,
+    socket::{sender::send_socket_command, structs::SocketCommand},
+};
 
-fn main() -> std::io::Result<()> {
-    let Some(cmd) = env::args().nth(1) else {
+fn main() -> anyhow::Result<()> {
+    let mut command = Args4Ctl::command();
+
+    let available_commands = SocketCommand::get_all_comands_string()
+        .lines()
+        .map(|line| format!("  {line}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    command = command.after_help(format!("Available commands:\n{available_commands}"));
+
+    let args = Args4Ctl::from_arg_matches(&command.get_matches())?;
+
+    let Some(cmd) = args.command else {
         SocketCommand::print_all();
         eprintln!("--------------------");
         eprintln!("usage: emu-boardctl <command>");
@@ -10,5 +25,6 @@ fn main() -> std::io::Result<()> {
     };
 
     send_socket_command(cmd)?;
+
     Ok(())
 }

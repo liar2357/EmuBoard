@@ -1,7 +1,7 @@
 use crate::{
     app::structs::InputState,
     config::structs::HoldMode,
-    event::structs::UiEvent,
+    event::{log::Logger, structs::UiEvent},
     ui::structs::{CustomKey, KeyDef, KeyWrap, StyleCtl},
 };
 use evdevil::{
@@ -28,12 +28,15 @@ pub struct InputSender {
     is_fn: bool,
 
     modifier_map: HashMap<String, bool>,
+
+    logger: Arc<Logger>,
 }
 
 impl InputSender {
     pub fn new(
         input_state: Arc<RwLock<InputState>>,
         ui_eve_sender: Sender<UiEvent>,
+        logger: Arc<Logger>,
     ) -> anyhow::Result<Self> {
         let device = UinputDevice::builder()?
             .with_keys(input_state.read().unwrap().kb_supperted_keys())?
@@ -57,6 +60,7 @@ impl InputSender {
                 map.insert("Fn".to_string(), false);
                 map
             },
+            logger,
         })
     }
 
@@ -69,7 +73,7 @@ impl InputSender {
 
         match key_ref.key_code(self.is_fn) {
             KeyWrap::Default(key) => {
-                eprintln!("PRESSED:{:?}", key);
+                self.logger.trace(format!("PRESSED:{:?}", key));
 
                 let command = match conf_g.hold_mode {
                     HoldMode::None => KeyState::PRESSED,
@@ -100,7 +104,7 @@ impl InputSender {
             }
             KeyWrap::Custom(custom) => match custom {
                 CustomKey::Fn => {
-                    eprintln!("PRESSED:Fn");
+                    self.logger.trace("PRESSED:Fn");
 
                     self.is_fn = match conf_g.hold_mode {
                         HoldMode::None => true,
@@ -137,7 +141,7 @@ impl InputSender {
                     || matches!(conf_g.hold_mode, HoldMode::Hold | HoldMode::Toggle)
                         && !key_ref.is_modifier()
                 {
-                    eprintln!("RELEASED:{:?}", key);
+                    self.logger.trace(format!("RELEASED:{:?}", key));
 
                     self.device
                         .write(&[KeyEvent::new(key, KeyState::RELEASED).into()])?;
@@ -173,7 +177,7 @@ impl InputSender {
             KeyWrap::Custom(custom) => match custom {
                 CustomKey::Fn => {
                     if matches!(conf_g.hold_mode, HoldMode::None) {
-                        println!("RELEASED:Fn");
+                        self.logger.trace("RELEASED:Fn");
                         self.is_fn = false;
 
                         self.refresh_ui();
@@ -219,7 +223,8 @@ impl InputSender {
                     && c.is_modifier()
                     && self.modifier_map[&c.get_key_name()]
                 {
-                    //eprintln!("{}: COLOER_CHENGE_TO_HOLDED", c.get_key_name());
+                    self.logger
+                        .trace(format!("{}: COLOER_CHENGE_TO_HOLDED", c.get_key_name()));
 
                     let _ = self.ui_eve_sender.send(UiEvent::CtlKeyStyle {
                         pos: (i, j),
@@ -230,7 +235,8 @@ impl InputSender {
                     && c.is_modifier()
                     && !self.modifier_map[&c.get_key_name()]
                 {
-                    //eprintln!("{}: COLOER_CHENGE_TO_DEFAULT", c.get_key_name());
+                    self.logger
+                        .trace(format!("{}: COLOER_CHENGE_TO_DEFAULT", c.get_key_name()));
 
                     let _ = self.ui_eve_sender.send(UiEvent::CtlKeyStyle {
                         pos: (i, j),

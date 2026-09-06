@@ -1,18 +1,22 @@
-use crate::socket::{sender::send_socket_command, structs::SocketCommand};
+use crate::{
+    event::log::Logger,
+    socket::{sender::send_socket_command, structs::SocketCommand},
+};
 use signal_hook::{consts::SIGINT, iterator::SignalsInfo};
+use std::sync::Arc;
 
-pub fn run_signal_thread(signals: &mut SignalsInfo) -> anyhow::Result<()> {
-    eprintln!("Thread Start: Signal");
+pub fn run_signal_thread(signals: &mut SignalsInfo, logger: Arc<Logger>) -> anyhow::Result<()> {
+    logger.trace("Thread Start: Signal");
     for signal in signals.forever() {
         match signal {
             SIGINT => {
-                eprintln!("Received Ctrl+C");
+                logger.trace("Signal: Received Ctrl+C");
                 let _ = send_socket_command(SocketCommand::ShutdownApp.to_string());
             }
             _ => unreachable!(),
         }
     }
 
-    eprintln!("Thread End: Signal");
+    logger.trace("Thread End: Signal");
     Ok(())
 }
