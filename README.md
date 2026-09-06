@@ -143,6 +143,32 @@ default_ui_view=false
 default_ui_place="Lower"
 ```
 
+### Command-Line Options
+
+```bash
+# Display version information
+emu-board -V
+emu-board --version
+
+# Display usage information and available options
+emu-board -h
+emu-board --help
+
+# Specify an arbitrary file path as the configuration file
+emu-board -c <path>
+emu-board --config <path>
+
+# Set the log level
+emu-board        # (default) error and above
+emu-board -v     # warn and above
+emu-board -vv    # info and above
+emu-board -vvv   # trace and above
+```
+
+### Hot Reload
+
+Automatically regenerates the UI when the configuration file or display monitor changes.
+
 ## emu-boardctl
 
 ### Commands
@@ -168,6 +194,18 @@ emu-boardctl upper_ui_place
 
 # Shut down the application
 emu-boardctl shutdown_app
+```
+
+### Command-Line Options
+
+```bash
+# Display version information
+emu-board -V
+emu-board --version
+
+# Display usage information
+emu-board -h
+emu-board --help
 ```
 
 # License
