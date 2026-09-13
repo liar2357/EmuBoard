@@ -184,15 +184,16 @@ Automatically regenerates the UI when the configuration file or display monitor 
 
 ### Commands
 
-| Command         | Description                                    |
-| --------------- | ---------------------------------------------- |
-| toggle_ui_view  | Toggle the UI visibility                       |
-| show_ui_view    | Show the UI                                    |
-| hide_ui_view    | Hide the UI                                    |
-| toggle_ui_place | Toggle the UI position between upper and lower |
-| upper_ui_place  | Move the UI to the upper position              |
-| lower_ui_place  | Move the UI to the lower position              |
-| shutdown_app    | Shut down the application                      |
+| Command                  | Description                                                       |
+| ------------------------ | ----------------------------------------------------------------- |
+| toggle_ui_view           | Toggle the UI visibility                                          |
+| show_ui_view             | Show the UI                                                       |
+| hide_ui_view             | Hide the UI                                                       |
+| toggle_ui_place          | Toggle the UI position between upper and lower                    |
+| switch_profile \<index\> | Switch between multiple defined profiles (0-based / wraps around) |
+| upper_ui_place           | Move the UI to the upper position                                 |
+| lower_ui_place           | Move the UI to the lower position                                 |
+| shutdown_app             | Shut down the application                                         |
 
 ### Examples
 
