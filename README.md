@@ -104,6 +104,8 @@ The configuration required to grant access varies depending on the distribution.
 | default_monitor  | Monitor on which to display the keyboard | "auto"       |
 | default_ui_view  | Whether to show the UI at startup        | true         |
 | default_ui_place | Position of the UI                       | "Lower"      |
+| ui_height        | Height of main window                    | "30%"        |
+| ui_width         | Width of main window                     | "100%"       |
 
 ### Example Configuration
 
@@ -111,36 +113,45 @@ The configuration required to grant access varies depending on the distribution.
 
 # $HOME/.config/emu-board/config.toml
 
+# Multiple configurations can be defined as a profile.
+[[configs]]
+
 # layout
 # "JIS-QWERTY" -> Japanese QWERTY layout
 # "US-QWERTY" -> US English QWERTY layout
-
 layout="JIS-QWERTY"
 
 # hold_mode
 # "None" -> Modifier keys are not held.
-# "Hold" -> A modifier key is held until a non-modifier key is pressed.
+# "Hold" -> A modifier key is held when pressed and released when a non-modifier key is pressed.
 # "Toggle" -> The modifier key is toggled on/off each time it is pressed.
-
-hold_mode="Hold"
+# "HoldAndToggle" -> Behaves as Hold by default; pressing the key again while held toggles it.
+hold_mode = "Hold"
 
 # default_monitor
 # "auto" -> Automatically selects the connected monitor with the lexicographically smallest connector name.
 # "<any connector name>" -> Displays the UI on the specified monitor.
-
 default_monitor="eDP-1"
 
 # default_ui_view
 # true -> The UI is displayed immediately after startup.
 # false -> The UI is hidden immediately after startup.
-
 default_ui_view=false
 
 # default_ui_place
 # "Lower" -> Displays the UI at the bottom of the screen.
 # "Upper" -> Displays the UI at the top of the screen.
-
 default_ui_place="Lower"
+
+# ui_height
+# "<number>%" -> Specifies the overall UI height as a percentage of the screen height.
+# "<number>px" -> Specifies the overall UI height in pixels.
+ui_height = "30%"
+
+# ui_width
+# "<number>%" -> Specifies the overall UI width as a percentage of the screen width.
+# "<number>px" -> Specifies the overall UI width in pixels.
+ui_width = "100%"
 ```
 
 ### Command-Line Options
@@ -207,6 +218,17 @@ emu-board --version
 emu-board -h
 emu-board --help
 ```
+
+# Trivia
+
+**EmuBoard**
+Short for "Emulated Keyboard."
+I'd like you to pronounce it "Emu Board"...
+
+So, naturally, (?) the app icon is an emu, too.
+
+![App icon](./data/icons/128x128/emu-board.png)
+(Created with Google Gemini)
 
 # License
 

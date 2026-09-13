@@ -4,7 +4,7 @@ use crate::{
     event::{
         log::Logger,
         notify::send_notify,
-        reload::reload_application,
+        reload::{reload_application, switch_profile},
         structs::{ReloadEvent, UiEvent},
     },
     input::structs::InputCommand,
@@ -60,6 +60,9 @@ pub fn socket_command_hundler(
             SocketCommand::LowerUiPlace => {
                 ui_state.borrow().window_set_anchor(Edge::Bottom);
                 ui_state.borrow_mut().set_ui_place(UiPlace::Lower);
+            }
+            SocketCommand::SwitchProfile(idx) => {
+                switch_profile(ui_state, input_state, app, tx_ic, Arc::clone(logger), idx);
             }
             SocketCommand::ReloadApp => {
                 reload_application(

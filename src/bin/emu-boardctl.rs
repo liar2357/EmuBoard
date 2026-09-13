@@ -17,13 +17,14 @@ fn main() -> anyhow::Result<()> {
 
     let args = Args4Ctl::from_arg_matches(&command.get_matches())?;
 
-    let Some(cmd) = args.command else {
+    if args.command.is_empty() {
         SocketCommand::print_all();
         eprintln!("--------------------");
         eprintln!("usage: emu-boardctl <command>");
         std::process::exit(1);
     };
 
+    let cmd = args.command.join("-");
     send_socket_command(cmd)?;
 
     Ok(())

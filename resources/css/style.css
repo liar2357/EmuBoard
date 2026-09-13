@@ -18,3 +18,7 @@
 .holded-key {
   background-color: #ff8080;
 }
+
+.toggled-key {
+  background-color: #8080ff;
+}
