@@ -1,7 +1,7 @@
 use crate::{
     config::{
         loader::load_config,
-        structs::{Config, UiPlace},
+        structs::{Config, Profile, UiPlace},
     },
     event::log::Logger,
     input::structs::InputCommand,
@@ -32,23 +32,17 @@ impl UiState {
         tx_ic: &Sender<InputCommand>,
         logger: Arc<Logger>,
     ) -> Self {
-        let keyboard = &input_state.keyboard;
-        let config = &input_state.config;
-
         let mut kct = KeyComponentsTable::new();
 
         let window = build_ui(
             app,
-            keyboard,
+            input_state,
             &mut kct,
             tx_ic.clone(),
-            &config.default_monitor,
-            &config.default_ui_view,
-            &config.default_ui_place,
             Arc::clone(&logger),
         );
 
-        let current_ui_place = config.default_ui_place.clone();
+        let current_ui_place = input_state.get_conf_ref().default_ui_place.clone();
 
         Self {
             window,
@@ -114,17 +108,19 @@ impl UiState {
 
 pub struct InputState {
     keyboard: Keyboard,
-    config: Config,
+    profile: Profile,
+    profile_idx: usize,
     logger: Arc<Logger>,
 }
 impl InputState {
     pub fn new(custom_path: &Option<PathBuf>, logger: Arc<Logger>) -> Self {
-        let config = load_config(custom_path, Arc::clone(&logger));
-        let keyboard = load_keyboard(&config.layout);
+        let profile = load_config(custom_path, Arc::clone(&logger));
+        let keyboard = load_keyboard(&profile.configs[0].layout);
 
         Self {
             keyboard,
-            config,
+            profile,
+            profile_idx: 0,
             logger,
         }
     }
@@ -138,7 +134,7 @@ impl InputState {
     }
 
     pub fn get_conf_ref(&self) -> &Config {
-        &self.config
+        &self.profile.configs[self.profile_idx]
     }
 
     pub fn set_monitor_name(&mut self, new_name: &str) {
@@ -146,10 +142,17 @@ impl InputState {
             "Monitor connection name changing to: {:?}",
             new_name
         ));
-        self.config.set_monitor_name(new_name);
+        self.profile.configs[self.profile_idx].set_monitor_name(new_name);
     }
 
     pub fn get_monitor_name(&self) -> String {
-        self.config.get_monitor_name()
+        self.profile.configs[self.profile_idx].get_monitor_name()
+    }
+
+    pub fn switch_profile(&mut self, idx: usize) -> &Self {
+        self.profile_idx = idx % self.profile.configs.len();
+        self.keyboard = load_keyboard(&self.profile.configs[self.profile_idx].layout);
+
+        self
     }
 }

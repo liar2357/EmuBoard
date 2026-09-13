@@ -1,12 +1,13 @@
 #![allow(clippy::too_many_arguments)]
 
 use crate::{
-    config::structs::UiPlace,
+    app::structs::InputState,
+    config::structs::{UiPlace, UiScale},
     event::log::Logger,
     input::structs::InputCommand,
     ui::{
         monitor::setup_monitor,
-        structs::{KeyComponentsTable, KeyDef, Keyboard},
+        structs::{KeyComponentsTable, KeyDef},
     },
 };
 use gtk::{
@@ -14,50 +15,51 @@ use gtk::{
     style_context_add_provider_for_display,
 };
 use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
-use std::sync::{Arc, mpsc::Sender};
+use std::{
+    collections::HashMap,
+    sync::{Arc, mpsc::Sender},
+};
 
-const SCALING_UNIT_COL: i32 = 5;
-const SCALING_UNIT_ROW: i32 = 3;
 const COL_SPACE: i32 = 3;
 const ROW_SPACE: i32 = 3;
 
-enum CLTag {
-    Width,
-    Height,
-}
+fn calc_key_base_scale(
+    input_state: &InputState,
+    (global_width, global_height): (i32, i32),
+    logger: Arc<Logger>,
+) -> (i32, i32) {
+    let (kb_width, kb_height) = {
+        (
+            match input_state.get_conf_ref().ui_width {
+                UiScale::Pixel(v) => v,
+                UiScale::Percent(v) => (global_width as f64 * (v as f64 / 100.0)) as i32,
+            },
+            match input_state.get_conf_ref().ui_height {
+                UiScale::Pixel(v) => v,
+                UiScale::Percent(v) => (global_height as f64 * (v as f64 / 100.0)) as i32,
+            },
+        )
+    };
 
-fn calc_key_base_scale(kb: &Keyboard, global_width: i32, logger: Arc<Logger>) -> i32 {
-    let all_unit_in_line = kb.calc_key_unit_in_line();
+    let all_unit_in_line = input_state.get_kb_ref().calc_key_unit_in_line();
+    let row_num_in_kb = input_state.get_kb_ref().get_rows_num();
+
     let col_space_sum = COL_SPACE * (all_unit_in_line - 1);
-    let key_base_scale = (global_width - col_space_sum) / all_unit_in_line / SCALING_UNIT_COL;
+    let row_space_sum = ROW_SPACE * (row_num_in_kb - 1);
 
-    logger.info(format!("global_width = {global_width}"));
-    logger.info(format!("global_width = {all_unit_in_line}"));
-    logger.info(format!("key_base_scale = {key_base_scale}"));
+    let key_base_scale_w = (kb_width - col_space_sum) / all_unit_in_line;
+    let key_base_scale_h = (kb_height - row_space_sum) / row_num_in_kb;
 
-    key_base_scale
+    logger.info(format!("monitor_scale = {global_width}x{global_height}"));
+    logger.info(format!(
+        "key_base_scale = ({key_base_scale_w},{key_base_scale_h})"
+    ));
+
+    (key_base_scale_w, key_base_scale_h)
 }
 
 fn key_scaling(base: i32, scale: i32) -> i32 {
     base * scale
-}
-
-fn calc_length(mode: CLTag, base: i32, scale: i32) -> i32 {
-    let key_length = key_scaling(base, scale)
-        * if let CLTag::Height = mode {
-            SCALING_UNIT_ROW
-        } else {
-            SCALING_UNIT_COL
-        };
-
-    let space_length = (base - 1)
-        * if let CLTag::Height = mode {
-            COL_SPACE
-        } else {
-            ROW_SPACE
-        };
-
-    key_length + space_length
 }
 
 fn load_css() {
@@ -114,12 +116,9 @@ pub fn create_key(
 
 pub fn build_ui(
     app: &Application,
-    keyboard: &Keyboard,
+    input_state: &InputState,
     kct: &mut KeyComponentsTable,
     tx: Sender<InputCommand>,
-    default_monitor: &str,
-    default_ui_view: &bool,
-    default_ui_place: &UiPlace,
     logger: Arc<Logger>,
 ) -> ApplicationWindow {
     logger.info(format!(
@@ -146,7 +145,7 @@ pub fn build_ui(
     window.set_layer(Layer::Overlay);
 
     window.set_anchor(
-        match default_ui_place {
+        match input_state.get_conf_ref().default_ui_place {
             UiPlace::Upper => Edge::Top,
             UiPlace::Lower => Edge::Bottom,
         },
@@ -161,8 +160,23 @@ pub fn build_ui(
 
     window.set_namespace(Some(env!("CARGO_PKG_NAME")));
 
-    let global_width = setup_monitor(&window, default_monitor, Arc::clone(&logger)).unwrap_or(1200);
-    let key_base_scale = calc_key_base_scale(keyboard, global_width, Arc::clone(&logger));
+    let (global_width, global_height) = match setup_monitor(
+        &window,
+        &input_state.get_conf_ref().default_monitor,
+        Arc::clone(&logger),
+    ) {
+        Some(v) => v,
+        None => {
+            logger.warn("Failed to get monitor width and height");
+            (1200, 720)
+        }
+    };
+
+    let (key_base_scale_w, key_base_scale_h) = calc_key_base_scale(
+        input_state,
+        (global_width, global_height),
+        Arc::clone(&logger),
+    );
 
     let grid: Grid = builder.object::<Grid>("grid").unwrap();
     grid.set_row_spacing(ROW_SPACE as u32);
@@ -173,44 +187,61 @@ pub fn build_ui(
 
     window.set_application(Some(app));
 
-    let mut c_num: i32;
-    let mut r_num: i32 = 0;
+    let mut tall_buc: HashMap<i32, Vec<i32>> = HashMap::new();
 
-    for (r, line) in keyboard.rows.iter().enumerate() {
-        c_num = 0;
-        let mut rn_temp = i32::MAX;
+    for (r, line) in input_state.get_kb_ref().rows.iter().enumerate() {
+        let mut c_num = 0;
 
         for (c, key) in line.keys.iter().enumerate() {
-            let fixed_w = key_scaling(key.width(), key_base_scale);
-            let fixed_h = key_scaling(key.height(), key_base_scale);
+            let fixed_w = key_scaling(key.width(), key_base_scale_w);
+            let fixed_h = key_scaling(key.height(), key_base_scale_h);
             let (btn, l1, l2, l3) = create_key(key, (r, c), tx.clone());
 
-            btn.set_size_request(
-                calc_length(CLTag::Width, key.width(), key_base_scale),
-                calc_length(CLTag::Height, key.height(), key_base_scale),
-            );
+            btn.set_size_request(fixed_w, fixed_h);
 
             btn.set_hexpand(false);
             btn.set_vexpand(false);
 
-            btn.set_halign(gtk::Align::Center);
-            btn.set_valign(gtk::Align::Center);
+            btn.set_halign(gtk::Align::Fill);
+            btn.set_valign(gtk::Align::Fill);
 
-            grid.attach(&btn, c_num, r_num, fixed_w, fixed_h);
+            btn.set_margin_start(0);
+            btn.set_margin_end(0);
+            btn.set_margin_top(0);
+            btn.set_margin_bottom(0);
+
+            let appends: Vec<i32> = (c_num..c_num + key.width()).collect();
+            if key.height() > 1 {
+                for i in r as i32 + 1..r as i32 + key.height() {
+                    if let std::collections::hash_map::Entry::Vacant(e) = tall_buc.entry(i) {
+                        e.insert(appends.clone());
+                    } else {
+                        tall_buc.get_mut(&i).unwrap().extend(appends.clone());
+                    }
+                }
+            }
+
+            while let Some(v) = tall_buc.get(&(r as i32)) {
+                if v.contains(&c_num) {
+                    c_num += 1;
+                } else {
+                    break;
+                }
+            }
+
+            grid.attach(&btn, c_num, r as i32, key.width(), key.height());
+            logger.trace(format!(
+                "key({}) created and setting at ({r},{c_num})",
+                key.label(false, false)
+            ));
+            c_num += key.width();
 
             kct.append((r, c), (btn, l1, l2, l3));
-
-            c_num += fixed_w;
-            if rn_temp > fixed_h {
-                rn_temp = fixed_h;
-            }
         }
-
-        r_num += rn_temp;
     }
 
     window.present();
 
-    window.set_visible(*default_ui_view);
+    window.set_visible(input_state.get_conf_ref().default_ui_view);
     window
 }

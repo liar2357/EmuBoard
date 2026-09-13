@@ -11,6 +11,7 @@ pub enum SocketCommand {
     ToggleUiPlace,
     UpperUiPlace,
     LowerUiPlace,
+    SwitchProfile(usize),
     ReloadApp,
     ShutdownApp,
 }
@@ -24,6 +25,7 @@ impl SocketCommand {
             Self::ToggleUiPlace,
             Self::UpperUiPlace,
             Self::LowerUiPlace,
+            Self::SwitchProfile(0),
             Self::ReloadApp,
             Self::ShutdownApp,
         ]
@@ -50,6 +52,7 @@ impl Display for SocketCommand {
             Self::ToggleUiPlace => "toggle_ui_place",
             Self::UpperUiPlace => "upper_ui_place",
             Self::LowerUiPlace => "lower_ui_place",
+            Self::SwitchProfile(_) => "switch_profile <index>",
             Self::ReloadApp => "reload_app",
             Self::ShutdownApp => "shutdown_app",
         };
@@ -71,7 +74,18 @@ impl FromStr for SocketCommand {
             "lower_ui_place" => Ok(Self::LowerUiPlace),
             "reload_app" => Ok(SocketCommand::ReloadApp),
             "shutdown_app" => Ok(Self::ShutdownApp),
-            _ => Err(()),
+
+            _ => {
+                let (command, arg) = s.split_once('-').ok_or(())?;
+
+                match command {
+                    "switch_profile" => {
+                        let index = arg.parse::<usize>().map_err(|_| ())?;
+                        Ok(Self::SwitchProfile(index))
+                    }
+                    _ => Err(()),
+                }
+            }
         }
     }
 }

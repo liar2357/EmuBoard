@@ -22,5 +22,5 @@ pub struct Args {
     about = "Control a running EmuBoard instance."
 )]
 pub struct Args4Ctl {
-    pub command: Option<String>,
+    pub command: Vec<String>,
 }

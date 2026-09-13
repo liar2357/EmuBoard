@@ -1,5 +1,5 @@
 use crate::{
-    config::loader::try_get_config_path,
+    config::loader::get_or_create_config_path,
     event::{log::Logger, notify::send_notify, structs::ReloadEvent},
     ui::monitor::find_monitor_by_name,
 };
@@ -17,7 +17,7 @@ pub fn watch_file_change(
 ) -> anyhow::Result<()> {
     logger.trace("Thread Start: Change");
 
-    let config_path = try_get_config_path()?;
+    let config_path = get_or_create_config_path()?;
     let config_dir = config_path
         .parent()
         .expect("config path has no parent")
@@ -53,8 +53,8 @@ pub fn watch_file_change(
     Ok(())
 }
 
-pub fn monitor_width(monitor_name: &str) -> Option<i32> {
-    let monitor = find_monitor_by_name(monitor_name)?;
+pub fn monitor_width(monitor_name: &str, logger: &Arc<Logger>) -> Option<i32> {
+    let monitor = find_monitor_by_name(monitor_name, Arc::clone(logger))?;
     Some(monitor.geometry().width())
 }
 
@@ -64,7 +64,7 @@ pub fn watch_monitor_change(
     previous_width: &mut Option<i32>,
     logger: &Arc<Logger>,
 ) -> ControlFlow {
-    let current_width = monitor_width(monitor_name);
+    let current_width = monitor_width(monitor_name, logger);
 
     if current_width != *previous_width {
         let old_width = previous_width.unwrap_or(0);

@@ -1,21 +1,26 @@
 use crate::{
-    config::structs::Config,
+    config::structs::Profile,
     event::{log::Logger, notify::send_notify},
 };
 use directories::ProjectDirs;
 use std::{fs, io, path::PathBuf, sync::Arc};
 
-pub fn try_get_config_path() -> io::Result<PathBuf> {
+pub fn get_or_create_config_path() -> io::Result<PathBuf> {
     let dirs = ProjectDirs::from("", "", env!("CARGO_PKG_NAME"))
         .ok_or_else(|| io::Error::other("Failed to get config directory"))?;
 
     let path = dirs.config_dir().join("config.toml");
 
-    if path.is_file() {
-        Ok(path)
-    } else {
-        Err(io::Error::other("Failed to get default config path"))
+    if !path.is_file() {
+        fs::create_dir_all(dirs.config_dir())?;
+
+        let default = Profile::default();
+        let toml = toml::to_string_pretty(&default).map_err(io::Error::other)?;
+
+        fs::write(&path, toml)?;
     }
+
+    Ok(path)
 }
 
 fn try_get_custom_path(custom_path: &Option<PathBuf>) -> io::Result<PathBuf> {
@@ -31,12 +36,12 @@ fn try_get_custom_path(custom_path: &Option<PathBuf>) -> io::Result<PathBuf> {
     }
 }
 
-pub fn load_config(custom_path: &Option<PathBuf>, logger: Arc<Logger>) -> Config {
+pub fn load_config(custom_path: &Option<PathBuf>, logger: Arc<Logger>) -> Profile {
     let path: Option<PathBuf> = match try_get_custom_path(custom_path) {
         Ok(path) => Some(path),
         Err(e) => {
             logger.info(e);
-            match try_get_config_path() {
+            match get_or_create_config_path() {
                 Ok(path) => {
                     logger.info("Fallback to default config path");
                     send_notify("Fallback to default config path");
@@ -61,19 +66,19 @@ pub fn load_config(custom_path: &Option<PathBuf>, logger: Arc<Logger>) -> Config
                 Err(e) => {
                     logger.warn(format!("Config parse error: {e}"));
                     send_notify(format!("Config parse error\n{e}").as_str());
-                    Config::default()
+                    Profile::default()
                 }
             },
             Err(e) => {
                 logger.warn(format!("Config parse error: {e}"));
                 send_notify(format!("Config parse error\n{e}").as_str());
-                Config::default()
+                Profile::default()
             }
         },
         None => {
             logger.info("Fallback to default config setting");
             send_notify("Fallback to default config setting");
-            Config::default()
+            Profile::default()
         }
     }
 }
