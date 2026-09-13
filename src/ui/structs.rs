@@ -108,6 +108,10 @@ impl Keyboard {
         unit_in_line
     }
 
+    pub fn get_rows_num(&self) -> i32 {
+        self.rows.len() as i32
+    }
+
     pub fn get_keydef_by_addr(&self, (r, c): (usize, usize)) -> &KeyDef {
         &self.rows[r].keys[c]
     }

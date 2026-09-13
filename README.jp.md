@@ -103,38 +103,54 @@ configuration.nix
 | default_monitor  | 表示するモニター | "auto"       |
 | default_ui_view  | 起動時のUI表示   | true         |
 | default_ui_place | UIの表示位置     | "Lower"      |
+| ui_height        | UIの高さ         | "30%"        |
+| ui_width         | UIの幅           | "100%"       |
 
 ### 設定ファイル記述例
 
 ```toml
 # $HOME/.config/emu-board/config.toml
 
+# 設定ををプロファイルとして複数定義可能
+[[configs]]
+
 # layout
 # "JIS-QWERTY" -> 日本語QWERTY配列
 # "US-QWERTY" -> US英語QWERTY配列
-layout="JIS-QWERTY"
+layout = "JIS-QWERTY"
 
 # hold_mode
 # "None" -> 修飾キーのホールドを行いません。
 # "Hold" -> 修飾キーを押すとホールドされ修飾キー以外のキーが押されるとリリースされます。
 # "Toggle" -> 修飾キーが押されるごとに有効/無効が切替わります。
-hold_mode="Hold"
+# "HoldAndToggle" -> 基本はHold、Hold中に再度押すとToggle。
+hold_mode = "Hold"
 
 # default_monitor
 # "auto" -> 接続されているモニターのうち接続名が辞書順で最も若いものを自動で選択します。
 # "<任意の接続名>" -> そのモニターに表示します。
-default_monitor="eDP-1"
+default_monitor = "eDP-1"
 
 # default_ui_view
 # true -> 起動直後からUIが表示されます。
 # false -> 起動直後はUIが表示されません。
-default_ui_view=false
+default_ui_view = false
 
 
 # default_ui_place
 # "Lower" -> 画面下部にUIを表示します。
 # "Upper" -> 画面上部にUIを表示します。
-default_ui_place="Lower"
+default_ui_place = "Lower"
+
+# ui_height
+# "<数値>%" -> UI全体の高さを画面サイズの比率で指定
+# "<数値>px" -> UI全体の高さをピクセルで指定
+ui_height = "30%"
+
+# ui_width
+# "<数値>%" -> UI全体の幅を画面サイズの比率で指定
+# "<数値>px" -> UI全体の幅をピクセルで指定
+ui_width = "100%"
 ```
 
 ### コマンドラインオプション
@@ -167,15 +183,16 @@ emu-board -vvv   # trace以上
 
 ### コマンド一覧
 
-| 名前            | 説明                             |
-| --------------- | -------------------------------- |
-| toggle_ui_view  | UIの表示/非表示を切り替えます    |
-| show_ui_view    | UIを表示します                   |
-| hide_ui_view    | UIを非表示にします。             |
-| toggle_ui_place | UIの表示位置を上下で切り替えます |
-| upper_ui_place  | UIの表示位置を上側にします       |
-| lower_ui_place  | UIの表示位置を下側にします       |
-| shutdown_app    | アプリを終了します               |
+| 名前                     | 説明                                                 |
+| ------------------------ | ---------------------------------------------------- |
+| toggle_ui_view           | UIの表示/非表示を切り替えます                        |
+| show_ui_view             | UIを表示します                                       |
+| hide_ui_view             | UIを非表示にします                                   |
+| toggle_ui_place          | UIの表示位置を上下で切り替えます                     |
+| upper_ui_place           | UIの表示位置を上側にします                           |
+| switch_profile \<index\> | 複数定義されたプロファイルを切り替える(0開始/ループ) |
+| lower_ui_place           | UIの表示位置を下側にします                           |
+| shutdown_app             | アプリを終了します                                   |
 
 ### 使用例
 
@@ -201,6 +218,17 @@ emu-board --version
 emu-board -h
 emu-board --help
 ```
+
+# 余談
+
+**EmuBoard**
+"Emulated Keyboard"の略
+「えみゅーぼーど」と読んでほしい...
+
+せっかくなので(?)アイコンはエミューです
+
+![アプリアイコン](./data/icons/128x128/emu-board.png)
+(作・Google Gemini)
 
 # ライセンス
 

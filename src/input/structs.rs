@@ -27,7 +27,7 @@ pub struct InputSender {
 
     is_fn: bool,
 
-    modifier_map: HashMap<String, bool>,
+    modifier_map: HashMap<String, u8>,
 
     logger: Arc<Logger>,
 }
@@ -49,15 +49,15 @@ impl InputSender {
             is_fn: false,
             modifier_map: {
                 let mut map = HashMap::new();
-                map.insert("LAlt".to_string(), false);
-                map.insert("RAlt".to_string(), false);
-                map.insert("LCtrl".to_string(), false);
-                map.insert("RCtrl".to_string(), false);
-                map.insert("LShift".to_string(), false);
-                map.insert("RShift".to_string(), false);
-                map.insert("LSuper".to_string(), false);
-                map.insert("RSuper".to_string(), false);
-                map.insert("Fn".to_string(), false);
+                map.insert("LAlt".to_string(), 0);
+                map.insert("RAlt".to_string(), 0);
+                map.insert("LCtrl".to_string(), 0);
+                map.insert("RCtrl".to_string(), 0);
+                map.insert("LShift".to_string(), 0);
+                map.insert("RShift".to_string(), 0);
+                map.insert("LSuper".to_string(), 0);
+                map.insert("RSuper".to_string(), 0);
+                map.insert("Fn".to_string(), 0);
                 map
             },
             logger,
@@ -76,26 +76,49 @@ impl InputSender {
                 self.logger.trace(format!("PRESSED:{:?}", key));
 
                 let command = match conf_g.hold_mode {
-                    HoldMode::None => KeyState::PRESSED,
+                    HoldMode::None => Some(KeyState::PRESSED),
                     HoldMode::Hold | HoldMode::Toggle => {
-                        if key_ref.is_modifier() && self.modifier_map[&key_ref.get_key_name()] {
-                            self.modifier_map.insert(key_ref.get_key_name(), false);
+                        if key_ref.is_modifier() && self.modifier_map[&key_ref.get_key_name()] == 1
+                        {
+                            self.modifier_map.insert(key_ref.get_key_name(), 0);
 
-                            KeyState::RELEASED
+                            Some(KeyState::RELEASED)
                         } else {
                             if key_ref.is_modifier() {
-                                self.modifier_map.insert(key_ref.get_key_name(), true);
+                                self.modifier_map.insert(key_ref.get_key_name(), 1);
+                            }
+                            Some(KeyState::PRESSED)
+                        }
+                    }
+                    HoldMode::HoldAndToggle => {
+                        if key_ref.is_modifier() && self.modifier_map[&key_ref.get_key_name()] == 1
+                        {
+                            self.modifier_map.insert(key_ref.get_key_name(), 2);
+                            None
+                        } else if key_ref.is_modifier()
+                            && self.modifier_map[&key_ref.get_key_name()] == 2
+                        {
+                            self.modifier_map.insert(key_ref.get_key_name(), 0);
+
+                            Some(KeyState::RELEASED)
+                        } else {
+                            if key_ref.is_modifier() {
+                                self.modifier_map.insert(key_ref.get_key_name(), 1);
                             }
 
-                            KeyState::PRESSED
+                            Some(KeyState::PRESSED)
                         }
                     }
                 };
 
-                self.device.write(&[KeyEvent::new(key, command).into()])?;
+                if let Some(c) = command {
+                    self.device.write(&[KeyEvent::new(key, c).into()])?;
+                }
 
-                if matches!(conf_g.hold_mode, HoldMode::Hold | HoldMode::Toggle)
-                    && key_ref.is_modifier()
+                if matches!(
+                    conf_g.hold_mode,
+                    HoldMode::Hold | HoldMode::Toggle | HoldMode::HoldAndToggle
+                ) && key_ref.is_modifier()
                 {
                     self.refresh_ui();
                 }
@@ -109,11 +132,23 @@ impl InputSender {
                     self.is_fn = match conf_g.hold_mode {
                         HoldMode::None => true,
                         HoldMode::Hold | HoldMode::Toggle => {
-                            if self.modifier_map["Fn"] {
-                                self.modifier_map.insert("Fn".to_string(), false);
+                            if self.modifier_map["Fn"] == 1 {
+                                self.modifier_map.insert("Fn".to_string(), 0);
                                 false
                             } else {
-                                self.modifier_map.insert("Fn".to_string(), true);
+                                self.modifier_map.insert("Fn".to_string(), 1);
+                                true
+                            }
+                        }
+                        HoldMode::HoldAndToggle => {
+                            if self.modifier_map["Fn"] == 1 {
+                                self.modifier_map.insert("Fn".to_string(), 2);
+                                true
+                            } else if self.modifier_map["Fn"] == 2 {
+                                self.modifier_map.insert("Fn".to_string(), 0);
+                                false
+                            } else {
+                                self.modifier_map.insert("Fn".to_string(), 1);
                                 true
                             }
                         }
@@ -138,20 +173,24 @@ impl InputSender {
         match key_ref.key_code(self.is_fn) {
             KeyWrap::Default(key) => {
                 if matches!(conf_g.hold_mode, HoldMode::None)
-                    || matches!(conf_g.hold_mode, HoldMode::Hold | HoldMode::Toggle)
-                        && !key_ref.is_modifier()
+                    || matches!(
+                        conf_g.hold_mode,
+                        HoldMode::Hold | HoldMode::Toggle | HoldMode::HoldAndToggle
+                    ) && !key_ref.is_modifier()
                 {
                     self.logger.trace(format!("RELEASED:{:?}", key));
 
                     self.device
                         .write(&[KeyEvent::new(key, KeyState::RELEASED).into()])?;
 
-                    if matches!(conf_g.hold_mode, HoldMode::Hold) {
+                    if matches!(conf_g.hold_mode, HoldMode::Hold | HoldMode::HoldAndToggle) {
                         let mut names = vec![];
 
                         for (name, flg) in self.modifier_map.iter_mut() {
-                            *flg = false;
-                            names.push(name);
+                            if flg == &1 {
+                                *flg = 0;
+                                names.push(name);
+                            }
                         }
 
                         for mod_key_def in kb_g.get_keydefs_by_names(names) {
@@ -165,8 +204,10 @@ impl InputSender {
                         self.refresh_ui();
                     }
 
-                    if matches!(conf_g.hold_mode, HoldMode::Hold | HoldMode::Toggle)
-                        && key_ref.is_modifier()
+                    if matches!(
+                        conf_g.hold_mode,
+                        HoldMode::Hold | HoldMode::Toggle | HoldMode::HoldAndToggle
+                    ) && key_ref.is_modifier()
                     {
                         self.refresh_ui();
                     }
@@ -219,30 +260,55 @@ impl InputSender {
                     }
                 }
 
-                if matches!(conf_g.hold_mode, HoldMode::Hold | HoldMode::Toggle)
-                    && c.is_modifier()
-                    && self.modifier_map[&c.get_key_name()]
-                {
-                    self.logger
-                        .trace(format!("{}: COLOER_CHENGE_TO_HOLDED", c.get_key_name()));
+                if !matches!(conf_g.hold_mode, HoldMode::None) && c.is_modifier() {
+                    if self.modifier_map[&c.get_key_name()] >= 1 {
+                        let (rmv_name, add_name) = {
+                            if matches!(conf_g.hold_mode, HoldMode::Hold)
+                                || matches!(conf_g.hold_mode, HoldMode::HoldAndToggle)
+                                    && self.modifier_map[&c.get_key_name()] == 1
+                            {
+                                self.logger.trace(format!(
+                                    "{}: COLOER_CHENGE_TO_HOLDED",
+                                    c.get_key_name()
+                                ));
 
-                    let _ = self.ui_eve_sender.send(UiEvent::CtlKeyStyle {
-                        pos: (i, j),
-                        mode: StyleCtl::Add,
-                        name: "holded-key".to_string(),
-                    });
-                } else if matches!(conf_g.hold_mode, HoldMode::Hold | HoldMode::Toggle)
-                    && c.is_modifier()
-                    && !self.modifier_map[&c.get_key_name()]
-                {
-                    self.logger
-                        .trace(format!("{}: COLOER_CHENGE_TO_DEFAULT", c.get_key_name()));
+                                ("toggled-key".to_string(), "holded-key".to_string())
+                            } else {
+                                self.logger.trace(format!(
+                                    "{}: COLOER_CHENGE_TO_TOGGLED",
+                                    c.get_key_name()
+                                ));
 
-                    let _ = self.ui_eve_sender.send(UiEvent::CtlKeyStyle {
-                        pos: (i, j),
-                        mode: StyleCtl::Rmv,
-                        name: "holded-key".to_string(),
-                    });
+                                ("holded-key".to_string(), "toggled-key".to_string())
+                            }
+                        };
+
+                        let _ = self.ui_eve_sender.send(UiEvent::CtlKeyStyle {
+                            pos: (i, j),
+                            mode: StyleCtl::Rmv,
+                            name: rmv_name,
+                        });
+
+                        let _ = self.ui_eve_sender.send(UiEvent::CtlKeyStyle {
+                            pos: (i, j),
+                            mode: StyleCtl::Add,
+                            name: add_name,
+                        });
+                    } else {
+                        self.logger
+                            .trace(format!("{}: COLOER_CHENGE_TO_DEFAULT", c.get_key_name()));
+
+                        let _ = self.ui_eve_sender.send(UiEvent::CtlKeyStyle {
+                            pos: (i, j),
+                            mode: StyleCtl::Rmv,
+                            name: "holded-key".to_string(),
+                        });
+                        let _ = self.ui_eve_sender.send(UiEvent::CtlKeyStyle {
+                            pos: (i, j),
+                            mode: StyleCtl::Rmv,
+                            name: "toggled-key".to_string(),
+                        });
+                    }
                 }
             }
         }

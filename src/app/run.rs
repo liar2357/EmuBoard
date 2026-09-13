@@ -157,9 +157,9 @@ pub fn run(
         });
 
         let monitor_name = input_state.read().unwrap().get_monitor_name();
-        let mut previous_width = monitor_width(&monitor_name);
-
         let logger_c1 = Arc::clone(&logger_c);
+        let mut previous_width = monitor_width(&monitor_name, &logger_c1);
+
         timeout_add_local(Duration::from_millis(100), move || {
             watch_monitor_change(&monitor_name, &tx_re, &mut previous_width, &logger_c1)
         });
