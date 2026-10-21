@@ -23,14 +23,14 @@ use std::{
     },
 };
 
-pub fn socket_command_hundler(
+pub fn socket_command_handler(
     ui_state: &Rc<RefCell<UiState>>,
     input_state: &Arc<RwLock<InputState>>,
     app: &Application,
     rx_sc: &Receiver<SocketCommand>,
     tx_ic: &Sender<InputCommand>,
     logger: &Arc<Logger>,
-    custom_path: &Option<PathBuf>,
+    config_path: &Option<PathBuf>,
 ) -> ControlFlow {
     while let Ok(cmd) = rx_sc.try_recv() {
         match cmd {
@@ -66,7 +66,7 @@ pub fn socket_command_hundler(
             }
             SocketCommand::ReloadApp => {
                 reload_application(
-                    custom_path,
+                    config_path,
                     ui_state,
                     input_state,
                     app,
@@ -87,7 +87,7 @@ pub fn socket_command_hundler(
     ControlFlow::Continue
 }
 
-pub fn ui_event_hundler(ui_state: &Rc<RefCell<UiState>>, rx_ue: &Receiver<UiEvent>) -> ControlFlow {
+pub fn ui_event_handler(ui_state: &Rc<RefCell<UiState>>, rx_ue: &Receiver<UiEvent>) -> ControlFlow {
     while let Ok(cmd) = rx_ue.try_recv() {
         match cmd {
             UiEvent::SetKeyText { pos, texts } => {
@@ -109,14 +109,14 @@ pub fn ui_event_hundler(ui_state: &Rc<RefCell<UiState>>, rx_ue: &Receiver<UiEven
     ControlFlow::Continue
 }
 
-pub fn reload_event_hundler(
+pub fn reload_event_handler(
     ui_state: &Rc<RefCell<UiState>>,
     input_state: &Arc<RwLock<InputState>>,
     app: &Application,
     tx_ic: &Sender<InputCommand>,
     rx_re: &Receiver<ReloadEvent>,
     logger: &Arc<Logger>,
-    custom_path: &Option<PathBuf>,
+    config_path: &Option<PathBuf>,
 ) -> ControlFlow {
     let mut is_reload_doing = false;
 
@@ -130,7 +130,7 @@ pub fn reload_event_hundler(
 
     if is_reload_doing {
         reload_application(
-            custom_path,
+            config_path,
             ui_state,
             input_state,
             app,

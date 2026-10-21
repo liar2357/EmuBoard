@@ -1,9 +1,10 @@
 use crate::{
     app::{
-        handler::{reload_event_hundler, socket_command_hundler, ui_event_hundler},
+        handler::{reload_event_handler, socket_command_handler, ui_event_handler},
         structs::{InputState, UiState},
         utils::bind_socket,
     },
+    config::loader::resolve_config_path,
     event::{
         hot_reload::{monitor_width, watch_file_change, watch_monitor_change},
         log::Logger,
@@ -29,7 +30,7 @@ use std::{
 
 pub fn run(
     custom_config_path: Option<PathBuf>,
-    join_hundlers: &mut Vec<JoinHandle<anyhow::Result<(), anyhow::Error>>>,
+    join_handlers: &mut Vec<JoinHandle<anyhow::Result<(), anyhow::Error>>>,
     logger: Arc<Logger>,
 ) -> ExitCode {
     if let Err(e) = gio::resources_register_include!("emu-board.gresource") {
@@ -58,6 +59,8 @@ pub fn run(
         }
     };
 
+    let config_path = resolve_config_path(&custom_config_path, &logger);
+
     let (tx_ic, rx_ic) = mpsc::channel::<InputCommand>();
     let (tx_sc, rx_sc) = mpsc::channel::<SocketCommand>();
     let (tx_ue, rx_ue) = mpsc::channel::<UiEvent>();
@@ -70,25 +73,26 @@ pub fn run(
 
     let spc = socket_path.clone();
 
-    let custom_config_path_c = Rc::clone(&custom_config_path);
-    let input_state = InputState::new(&custom_config_path_c, Arc::clone(&logger));
+    let config_path_c = config_path.clone();
+    let input_state = InputState::new(&config_path_c, Arc::clone(&logger));
     let input_state = Arc::new(RwLock::new(input_state));
 
     let input_state_c = Arc::clone(&input_state);
     let logger_c = Arc::clone(&logger);
-    join_hundlers.push(thread::spawn(move || {
+    join_handlers.push(thread::spawn(move || {
         run_input_thread(rx_ic, tx_ue, input_state_c, logger_c)
     }));
 
     let logger_c = Arc::clone(&logger);
-    join_hundlers.push(thread::spawn(move || {
+    join_handlers.push(thread::spawn(move || {
         start_socket_server(listener, tx_sc, spc, logger_c)
     }));
 
+    let config_path_c = config_path.clone();
     let tx_re_c = tx_re.clone();
     let logger_c = Arc::clone(&logger);
-    join_hundlers.push(thread::spawn(move || {
-        watch_file_change(tx_re_c, rx_ss, logger_c)
+    join_handlers.push(thread::spawn(move || {
+        watch_file_change(config_path_c, tx_re_c, rx_ss, logger_c)
     }));
 
     let tx_ic = RefCell::new(Some(tx_ic));
@@ -122,37 +126,37 @@ pub fn run(
         let tx_ic_c = tx_ic.clone();
 
         let logger_c1 = Arc::clone(&logger_c);
-        let custom_config_path_c = Rc::clone(&custom_config_path);
+        let config_path_c = config_path.clone();
         timeout_add_local(Duration::from_millis(16), move || {
-            socket_command_hundler(
+            socket_command_handler(
                 &ui_state_c,
                 &input_state_c,
                 &app_c,
                 &rx_sc,
                 &tx_ic_c,
                 &logger_c1,
-                &custom_config_path_c,
+                &config_path_c,
             )
         });
 
         let ui_state_c = Rc::clone(&ui_state);
         timeout_add_local(Duration::from_millis(16), move || {
-            ui_event_hundler(&ui_state_c, &rx_ue)
+            ui_event_handler(&ui_state_c, &rx_ue)
         });
 
         let app_c = app.clone();
         let input_state_c = Arc::clone(&input_state);
         let logger_c1 = Arc::clone(&logger_c);
-        let custom_config_path_c = Rc::clone(&custom_config_path);
+        let config_path_c = config_path.clone();
         timeout_add_local(Duration::from_millis(100), move || {
-            reload_event_hundler(
+            reload_event_handler(
                 &ui_state,
                 &input_state_c,
                 &app_c,
                 &tx_ic,
                 &rx_re,
                 &logger_c1,
-                &custom_config_path_c,
+                &config_path_c,
             )
         });
 

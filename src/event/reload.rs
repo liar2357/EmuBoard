@@ -12,7 +12,7 @@ use std::{
 };
 
 pub fn reload_application(
-    custom_path: &Option<PathBuf>,
+    config_path: &Option<PathBuf>,
     ui_state: &Rc<RefCell<UiState>>,
     input_state: &Arc<RwLock<InputState>>,
     app: &Application,
@@ -21,7 +21,7 @@ pub fn reload_application(
 ) {
     ui_state.borrow().window_close();
 
-    let new_input_state = InputState::new(custom_path, Arc::clone(&logger));
+    let new_input_state = InputState::new(config_path, Arc::clone(&logger));
     let new_ui_state = UiState::new(app, &new_input_state, tx_ic, Arc::clone(&logger));
 
     *ui_state.borrow_mut() = new_ui_state;
