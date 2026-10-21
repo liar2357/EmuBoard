@@ -27,7 +27,7 @@ fn try_get_custom_path(custom_path: &Option<PathBuf>) -> io::Result<PathBuf> {
     match custom_path {
         Some(path) => {
             if path.is_file() {
-                Ok(path.clone())
+                path.canonicalize()
             } else {
                 Err(io::Error::other("Failed to get custom config path"))
             }
@@ -36,15 +36,18 @@ fn try_get_custom_path(custom_path: &Option<PathBuf>) -> io::Result<PathBuf> {
     }
 }
 
-pub fn load_config(custom_path: &Option<PathBuf>, logger: Arc<Logger>) -> Profile {
-    let path: Option<PathBuf> = match try_get_custom_path(custom_path) {
-        Ok(path) => Some(path),
+pub fn resolve_config_path(custom_path: &Option<PathBuf>, logger: &Logger) -> Option<PathBuf> {
+    match try_get_custom_path(custom_path) {
+        Ok(path) => {
+            logger.info("config path resolved");
+            logger.trace(format!("deteced path: {path:?}"));
+            Some(path)
+        }
         Err(e) => {
             logger.info(e);
             match get_or_create_config_path() {
                 Ok(path) => {
                     logger.info("Fallback to default config path");
-                    send_notify("Fallback to default config path");
                     Some(path)
                 }
                 Err(e) => {
@@ -53,14 +56,18 @@ pub fn load_config(custom_path: &Option<PathBuf>, logger: Arc<Logger>) -> Profil
                 }
             }
         }
-    };
+    }
+}
 
+pub fn load_config(path: &Option<PathBuf>, logger: Arc<Logger>) -> Profile {
     match path {
-        Some(conf) => match fs::read_to_string(&conf) {
+        Some(conf) => match fs::read_to_string(conf) {
             Ok(content) => match toml::from_str(&content) {
                 Ok(v) => {
-                    logger.trace("Config Load Successfull");
+                    logger.info("Config Load Successfull");
                     send_notify("Config Load Successfull");
+
+                    logger.trace(format!("loaded config: {v:?}"));
                     v
                 }
                 Err(e) => {

@@ -1,27 +1,36 @@
 use crate::{
-    config::loader::get_or_create_config_path,
     event::{log::Logger, notify::send_notify, structs::ReloadEvent},
     ui::monitor::find_monitor_by_name,
 };
+use anyhow::anyhow;
 use gtk::{glib::ControlFlow, prelude::*};
 use notify::{Config as NotifyConfig, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
-use std::sync::{
-    Arc,
-    mpsc::{Receiver, Sender},
+use std::{
+    path::PathBuf,
+    sync::{
+        Arc,
+        mpsc::{Receiver, Sender},
+    },
 };
 
 pub fn watch_file_change(
+    config_path: Option<PathBuf>,
     tx: Sender<ReloadEvent>,
     rx: Receiver<()>,
     logger: Arc<Logger>,
 ) -> anyhow::Result<()> {
     logger.trace("Thread Start: Change");
 
-    let config_path = get_or_create_config_path()?;
+    let Some(config_path) = config_path else {
+        return Err(anyhow!("config path is not present"));
+    };
+
     let config_dir = config_path
         .parent()
         .expect("config path has no parent")
         .to_path_buf();
+
+    logger.info(format!("file change monitor: {:?}", config_dir));
 
     let mut watcher = RecommendedWatcher::new(
         move |result: notify::Result<notify::Event>| {

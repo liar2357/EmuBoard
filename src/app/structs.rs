@@ -113,8 +113,8 @@ pub struct InputState {
     logger: Arc<Logger>,
 }
 impl InputState {
-    pub fn new(custom_path: &Option<PathBuf>, logger: Arc<Logger>) -> Self {
-        let profile = load_config(custom_path, Arc::clone(&logger));
+    pub fn new(config_path: &Option<PathBuf>, logger: Arc<Logger>) -> Self {
+        let profile = load_config(config_path, Arc::clone(&logger));
         let keyboard = load_keyboard(&profile.configs[0].layout);
 
         Self {
